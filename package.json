@@ -1,0 +1,64 @@
+{
+  "name": "yt2mp3-advanced-converter",
+  "version": "1.2.0",
+  "main": "main.js",
+  "author": "Muhammad Saiffuddin Bin Ahmad Fauzi (Sai)",
+  "description": "Advanced Audio & Metadata Engine V1.2",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "publish": "electron-builder --win -p always"
+  },
+  "build": {
+    "appId": "com.saithelimit.yt2mp3",
+    "productName": "YT to MP3 — Advanced Converter Pro V1.2",
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "sfmuhammmad327-wq",
+        "repo": "yt2mp3-advanced-converter"
+      }
+    ],
+    "win": {
+      "icon": "yt2mp3.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "YT2MP3 Converter Pro V1.2",
+      "artifactName": "${productName} Setup ${version}.${ext}"
+    },
+    "files": [
+      "main.js",
+      "YT2MP3.html",
+      "*.png",
+      "*.ico"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/youtube-dl-exec/**/*"
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "node-id3": "0.2.6",
+    "youtube-dl-exec": "2.4.15"
+  },
+  "devDependencies": {
+    "electron": "29.1.0",
+    "electron-builder": "24.13.3"
+  },
+  "allowScripts": {
+    "electron@29.1.0": true
+  },
+  "keywords": [],
+  "type": "commonjs"
+}
