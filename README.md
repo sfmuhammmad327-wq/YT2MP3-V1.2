@@ -35,8 +35,8 @@ Ensure you have [Node.js](https://nodejs.org/) installed on your machine before 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/sfmuhammmad327-wq/YT2MP3-V1.0.git
-cd YT2MP3-V1.0
+git clone https://github.com/sfmuhammmad327-wq/YT2MP3-V1.2.git
+cd YT2MP3-V1.2
 ```
 
 ### 2. Install Project Dependencies
