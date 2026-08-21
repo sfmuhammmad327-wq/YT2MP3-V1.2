@@ -3,8 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT to MP3 — NextGen Converter Pro V1.0</title>
-    
+    <title>YT to MP3 — Advanced Converter Pro V1.2</title>
+    <meta name="description" content="Advanced YouTube to MP3 engine built for flawless audio extraction and perfect metadata tagging.">
+    <meta property="og:title" content="YT to MP3 — Advanced Converter Pro V1.2">
+    <meta name="og:description" content="Advanced YouTube to MP3 engine built for flawless audio extraction and perfect metadata tagging.">
+    <meta property="og:type" content="website">
+    <script>
+        (function () {
+            var accepted = false;
+            try { accepted = localStorage.getItem('legalAccepted_Aura') === 'true'; } catch (e) {}
+            document.documentElement.classList.add(accepted ? 'boot-skip-legal' : 'boot-show-legal');
+        })();
+    </script>
     <link rel="icon" type="x-icon" href="yt2mp3.ico">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,7 +23,35 @@
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap');
 
+        :root {
+            --bg-base: #070514;
+            --bg-panel: rgba(15, 12, 30, 0.95);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-main: #00d2ff;
+            --accent-danger: #ff007f;
+            --accent-glow: rgba(0, 210, 255, 0.4);
+            --text-main: #fff;
+            --text-muted: #8e8e8e;
+            --shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+        #bg-layer, .fixed-btn-group, .glow-wrapper, .github-link {
+            opacity: 0; pointer-events: none; transition: opacity 0.7s ease;
+        }
+        body.app-ready #bg-layer, body.app-ready .fixed-btn-group,
+        body.app-ready .glow-wrapper, body.app-ready .github-link {
+            opacity: 1; pointer-events: auto;
+        }
+        #legalAcceptanceOverlay, #appSplashOverlay, #appIntroOverlay { display: none; }
+        html.boot-show-legal #legalAcceptanceOverlay { display: flex; }
+        html.boot-skip-legal #appSplashOverlay { display: flex; }
+
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: #070514; border-left: 1px solid rgba(255, 255, 255, 0.05); }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #7000ff, #00d2ff); border-radius: 10px; border: 3px solid #070514; }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #ff007f, #00d2ff); }
 
         body {
             width: 100vw; min-height: 100vh; margin: 0;
@@ -54,15 +92,16 @@
         .blob.orb-2 { bottom: -10%; right: -10%; background: linear-gradient(180deg, rgba(64, 224, 208, 0.25) 0%, rgba(112, 0, 255, 0.25) 100%); animation-delay: 3s; }
         @keyframes float { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(40px) scale(1.05); } 100% { transform: translateY(0) scale(1); } }
 
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
         .toast {
             background: rgba(15, 12, 30, 0.95); border: 1px solid #7000ff; color: #fff;
             padding: 15px 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(112, 0, 255, 0.3);
-            transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0; transform: translateY(-14px); transition: opacity 0.4s ease, transform 0.4s ease;
             font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 12px; backdrop-filter: blur(10px);
-            max-width: 350px; line-height: 1.4;
+            max-width: 450px; line-height: 1.4; pointer-events: auto; word-break: break-word; text-align: center;
         }
-        .toast.show { transform: translateX(0); }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.hide { opacity: 0; transform: translateY(-10px); }
         .toast-info { border-color: #00d2ff; box-shadow: 0 0 15px rgba(0, 210, 255, 0.3); }
         .toast-success { border-color: #92fe9d; box-shadow: 0 0 15px rgba(146, 254, 157, 0.3); }
         .toast-warning { border-color: #ffaa00; box-shadow: 0 0 15px rgba(255, 170, 0, 0.3); }
@@ -92,6 +131,75 @@
         .toggle-meta-btn { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: all 0.3s ease; z-index: 20; }
         .toggle-meta-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.15); }
         .toggle-meta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Completion "Back" control and the web-build "Setup Info" button both
+           live pinned to the container's top-left corner (mirroring
+           .toggle-meta-btn on the right). They sit side-by-side in a flex row
+           via .top-left-btn-group instead of being independently absolutely
+           positioned, so they never overlap and stay aligned regardless of
+           which one is visible. */
+        .top-left-btn-group {
+            position: absolute; top: 20px; left: 20px; z-index: 20;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .container-back-btn {
+            display: none; position: static;
+            width: 40px; height: 40px; align-items: center; justify-content: center;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; border-radius: 50%; font-size: 1rem; cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .container-back-btn.show { display: flex; }
+        .container-back-btn:hover { background: #fff; color: #120a2b; box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4); transform: scale(1.05); }
+
+        .web-notice-btn {
+            position: static; z-index: 20;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(0, 210, 255, 0.1); border: 1px solid var(--accent-main);
+            color: var(--accent-main); font-family: 'Fira Code', monospace; font-weight: 700;
+            font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s ease; box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+        }
+        .web-notice-btn:hover { background: var(--accent-main); color: #070514; box-shadow: 0 0 15px var(--accent-glow); }
+        #webNoticeDialog { max-width: 480px; }
+        #webNoticeDialog .info-desc { margin-bottom: 12px; }
+        #webNoticeDialog code { background: rgba(255,255,255,0.08); padding: 2px 7px; border-radius: 5px; font-family: 'Fira Code', monospace; color: #00d2ff; }
+
+        /* --- Neon Input-Source Toggle --- */
+        .input-mode-toggle-wrapper {
+            position: absolute; top: 62px; right: 20px; z-index: 20;
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255,255,255,0.12);
+            padding: 6px 10px; border-radius: 30px; backdrop-filter: blur(6px);
+            transition: box-shadow 0.3s ease;
+        }
+        .input-mode-toggle-wrapper.mode-yt { box-shadow: 0 0 14px rgba(0, 210, 255, 0.35); border-color: rgba(0, 210, 255, 0.4); }
+        .input-mode-toggle-wrapper.mode-custom { box-shadow: 0 0 14px rgba(255, 0, 127, 0.25); border-color: rgba(255, 0, 127, 0.35); }
+        .mode-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #555; transition: all 0.3s ease; white-space: nowrap; }
+        .mode-label.active.mode-label-left { color: #ff007f; text-shadow: 0 0 8px rgba(255, 0, 127, 0.6); }
+        .mode-label.active.mode-label-right { color: #00d2ff; text-shadow: 0 0 8px rgba(0, 210, 255, 0.6); }
+
+        .neon-switch { position: relative; display: inline-block; width: 44px; height: 22px; flex-shrink: 0; cursor: pointer; }
+        .neon-switch input { opacity: 0; width: 0; height: 0; }
+        .neon-slider {
+            position: absolute; inset: 0; border-radius: 22px; cursor: pointer;
+            background: linear-gradient(90deg, #ff007f, #7000ff); transition: background 0.4s ease;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.6), 0 0 10px rgba(255, 0, 127, 0.5);
+        }
+        .neon-slider::before {
+            content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px;
+            background: #fff; border-radius: 50%; transition: transform 0.35s cubic-bezier(0.68, -0.4, 0.27, 1.4);
+            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+        }
+        .neon-switch input:checked + .neon-slider { background: linear-gradient(90deg, #00d2ff, #40e0d0); box-shadow: inset 0 0 6px rgba(0,0,0,0.6), 0 0 12px rgba(0, 210, 255, 0.7); }
+        .neon-switch input:checked + .neon-slider::before { transform: translateX(22px); }
+        .neon-switch input:disabled + .neon-slider { opacity: 0.4; cursor: not-allowed; }
+
+        /* --- Second Encoding Progress Bar --- */
+        .progress-label { width: 100%; text-align: left; font-size: 0.75rem; font-weight: 600; color: #8e8e8e; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between; }
+        .progress-label span.pct { color: #00d2ff; font-family: 'Fira Code', monospace; }
+        .encoding-track { margin-top: 4px; }
+        .encoding-fill { background: linear-gradient(90deg, #ffaa00, #ff007f, #7000ff); box-shadow: 0 0 15px #ffaa00; }
         
         .header-section { text-align: center; margin-bottom: 30px; }
         h1 { font-weight: 800; font-size: 2.6rem; margin-bottom: 5px; background: linear-gradient(to right, #ff007f, #7000ff, #00d2ff, #40e0d0); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -126,6 +234,9 @@
         input[type="text"], input[type="number"] { width: 100%; padding: 14px 18px; border-radius: 10px; border: none; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 0.95rem; outline: none; border: 1px solid transparent; transition: all 0.3s ease; }
         input:focus:not(:disabled) { border-color: #7000ff; background: rgba(0, 0, 0, 0.8); }
         input:disabled { color: #555; background: rgba(0,0,0,0.3); pointer-events: none; }
+        
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .title-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
@@ -145,7 +256,6 @@
         .status-area { margin-top: 20px; display: none; flex-direction: column; align-items: center; width: 100%; }
         .progress-track { width: 100%; height: 8px; background: rgba(0, 0, 0, 0.5); border-radius: 10px; overflow: hidden; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.1); }
         .progress-fill { height: 100%; width: 0%; border-radius: 10px; background: linear-gradient(90deg, #ff007f, #00d2ff, #40e0d0); box-shadow: 0 0 15px #00d2ff; transition: width 0.4s ease; }
-        .status-text { color: #00d2ff; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; display: none; }
         
         .download-trigger-btn { display: none; background: linear-gradient(45deg, #00d2ff, #7000ff); color: #fff; margin-top: 15px; padding: 15px 30px; border: none; border-radius: 10px; font-weight: 800; width: 100%; cursor: pointer; transition: 0.3s ease; font-size: 1.05rem; }
         .download-trigger-btn:hover { box-shadow: 0 10px 20px rgba(0, 210, 255, 0.3); }
@@ -157,14 +267,19 @@
         dialog[open] { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         dialog[open]::backdrop { opacity: 1; }
         
-        @keyframes expandFromBtn {
-            0% { transform: translate(calc(var(--origin-x) - 50vw), calc(var(--origin-y) - 50vh)) scale(0.1); opacity: 0; }
-            100% { transform: translate(0, 0) scale(1); opacity: 1; }
+        @keyframes popDown {
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.9) translateY(40px); }
         }
-        #terminalDialog[open] { animation: expandFromBtn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        dialog.closing { animation: popDown 0.35s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards !important; pointer-events: none; }
+        dialog.closing::backdrop { opacity: 0; transition: opacity 0.35s ease; }
+        
+        @keyframes terminalPopIn {
+            0% { transform: scale(0.85) translateY(-16px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        #terminalDialog[open] { animation: terminalPopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         #terminalDialog .btn-back:hover { background: #00ff41 !important; color: #000 !important; box-shadow: 0 0 10px #00ff41; }
-        dialog.closing { opacity: 0; transform: scale(0.85) translateY(20px); transition: all 0.3s ease; pointer-events: none; }
-        dialog.closing::backdrop { opacity: 0; }
 
         .dialog-content { padding: 30px; display: flex; flex-direction: column; }
         
@@ -178,6 +293,14 @@
         .info-features li::marker { color: #00d2ff; }
         .info-contact { color: #ccc; font-size: 0.9rem; line-height: 1.5; }
         .info-contact a { color: #00d2ff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-top: 5px; font-weight: 600; }
+
+        .legal-agreement-box { display: flex; align-items: flex-start; gap: 14px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(0, 210, 255, 0.25); border-radius: 12px; padding: 16px 18px; margin-top: 5px; }
+        .legal-agreement-icon { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 0 6px rgba(0, 210, 255, 0.5)); }
+        .legal-agreement-text { text-align: left; }
+        .legal-agreement-title { color: #00d2ff; font-weight: 700; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+        .legal-agreement-text p { color: #ccc; font-size: 0.82rem; line-height: 1.5; margin-bottom: 8px; }
+        .legal-agreement-link { color: #00d2ff; font-size: 0.82rem; font-weight: 700; text-decoration: none; border-bottom: 1px dashed #00d2ff; display: inline-flex; align-items: center; gap: 6px; }
+        .legal-agreement-link:hover { color: #40e0d0; border-color: #40e0d0; }
         
         @keyframes neonAvatarBorder {
             0% { box-shadow: 0 0 5px #00d2ff, 0 0 10px #00d2ff, 0 0 20px #00d2ff; border-color: #00d2ff; }
@@ -197,40 +320,146 @@
         .img-container { width: 100%; max-height: 400px; margin-bottom: 20px; background: #000; border-radius: 12px; overflow: hidden; }
         .img-container img { max-width: 100%; }
         .dialog-art { width: 120px; height: 120px; border-radius: 12px; object-fit: cover; margin-bottom: 15px; border: 2px solid rgba(255,255,255,0.1); background: #000; align-self: center; }
+        .dialog-art-frame {
+            position: relative; width: 120px; height: 120px; align-self: center; margin-bottom: 15px;
+            background: #000; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); overflow: hidden;
+        }
+        .dialog-art-frame .dialog-art { margin-bottom: 0; width: 100%; height: 100%; border: none; display: block; }
+        .dialog-art-frame.art-empty .dialog-art { opacity: 0; visibility: hidden; }
+        .dlg-no-album-text {
+            position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+            text-align: center; font-size: 0.78rem; font-weight: 800; letter-spacing: 1px;
+            text-transform: uppercase; pointer-events: none; background-color: #000;
+            background-image: linear-gradient(90deg, #ff007f, #7000ff, #00d2ff, #40e0d0, #ff007f);
+            background-size: 400% 400%; -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+            animation: glowLoop 8s ease-in-out infinite;
+            filter: drop-shadow(0 0 6px rgba(0, 210, 255, 0.5));
+        }
+        .dialog-art-frame.art-empty .dlg-no-album-text { display: flex; }
         .dialog-filename { font-size: 1rem; font-weight: 700; color: #00d2ff; margin-bottom: 15px; word-break: break-all; text-align: center; }
-        .dialog-meta-grid { width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 8px 15px; text-align: left; font-size: 0.85rem; margin-bottom: 25px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; }
+        .dialog-meta-grid { width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 8px 15px; text-align: left; font-size: 0.85rem; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; }
         .dialog-meta-grid strong { color: #ff007f; }
         .dialog-meta-grid span { color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .dialog-buttons { display: flex; gap: 15px; width: 100%; }
+        /* Custom Audio Player UI */
+        .custom-audio-player {
+            display: flex; align-items: center; gap: 15px; width: 100%;
+            background: rgba(0, 0, 0, 0.5); padding: 12px 15px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 15px;
+        }
+        .custom-play-btn {
+            background: linear-gradient(45deg, #00d2ff, #7000ff);
+            border: none; width: 40px; height: 40px; border-radius: 50%;
+            color: white; font-size: 1.1rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0, 210, 255, 0.3); transition: transform 0.2s ease;
+        }
+        .custom-play-btn:hover { transform: scale(1.08); box-shadow: 0 6px 15px rgba(0, 210, 255, 0.5); }
+        .progress-container {
+            flex: 1; height: 6px; background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px; cursor: pointer; position: relative; overflow: hidden;
+            transition: height 0.2s ease;
+        }
+        .progress-container:hover { height: 8px; }
+        .progress-bar-fill {
+            height: 100%; width: 0%; background: #00d2ff;
+            border-radius: 4px; pointer-events: none;
+        }
+        .time-display {
+            font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #ccc;
+            min-width: 90px; text-align: right; flex-shrink: 0;
+        }
+        .time-display span { font-weight: 600; color: #fff; }
+        
+        .time-input-group { display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .time-input-group input { width: 35px; padding: 5px; text-align: center; border: none; background: transparent; color: #00d2ff; font-weight: bold; outline: none; font-family: monospace; font-size: 1rem; border-bottom: 1px solid transparent; transition: border 0.3s; }
+        .time-input-group input:focus { border-bottom: 1px solid #ff007f; }
+        .time-input-group input:disabled { color: #555; pointer-events: none; opacity: 0.3; }
+        .time-input-group input.ms-input { width: 45px; }
+        .time-input-group span { color: #8e8e8e; font-weight: bold; transition: 0.3s; }
+        .time-input-group.disabled span { opacity: 0.3; }
+
+        .dialog-buttons { display: flex; gap: 15px; width: 100%; margin-top: 10px;}
         .dialog-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; font-size: 0.95rem; }
         .btn-back { background: rgba(255,255,255,0.1); color: #fff; }
         .btn-back:hover { background: rgba(255,255,255,0.2); }
         .btn-confirm { background: linear-gradient(45deg, #00d2ff, #7000ff); color: #fff; }
         .btn-confirm:hover { box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4); transform: translateY(-2px); }
 
-        .btn-close-terminal {  flex: none;  padding: 6px 12px;  width: auto;  background: rgba(0,255,65,0.1);  color: #00ff41;  border: 1px solid #00ff41; cursor: pointer; transition: all 0.3s ease; font-family: 'Cascadia Mono', monospace; border-radius: 6px; }
-        .btn-close-terminal:hover {  background: #00ff41;  color: #000;  box-shadow: 0 0 10px #00ff41; }
-
-        #terminalDialog { max-width: 800px; width: 95%; border: 1px solid #00ff41; background: #000; position: relative; overflow: hidden; }
+        #terminalDialog { max-width: 800px; width: 95%; border: 1px solid #00ff41; background: #000; position: relative; max-height: calc(100vh - 80px); overflow: hidden; }
         .terminal-header { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0, 255, 65, 0.3); padding-bottom: 15px; margin-bottom: 15px; }
         .terminal-header h3 { color: #00ff41; font-family: 'Cascadia Mono', 'Fira Code', 'Courier New', monospace; letter-spacing: 1px; margin: 0; text-shadow: 0 0 8px rgba(0, 255, 65, 0.6); }
         .terminal-sync-btn { background: rgba(0, 255, 65, 0.1); border: 1px solid #00ff41; color: #00ff41; padding: 6px 12px; border-radius: 6px; font-family: 'Cascadia Mono', monospace; font-size: 0.8rem; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px;}
         .terminal-sync-btn:hover { background: #00ff41; color: #000; box-shadow: 0 0 10px #00ff41; }
-        .terminal-sync-btn.syncing i { animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
         
         .terminal-display { position: relative; z-index: 2; background: transparent; color: #00ff41; font-family: 'Cascadia Mono', 'Fira Code', 'Courier New', monospace; font-size: 0.85rem; padding: 15px; height: 350px; overflow-y: auto; border-radius: 8px; text-align: left; line-height: 1.6; white-space: pre-wrap; text-shadow: 0 0 3px rgba(0, 255, 65, 0.8); }
-        .terminal-display::-webkit-scrollbar { width: 8px; }
-        .terminal-display::-webkit-scrollbar-track { background: rgba(0, 255, 65, 0.1); }
-        .terminal-display::-webkit-scrollbar-thumb { background: #00ff41; border-radius: 4px; }
+
+        .terminal-display { scrollbar-color: #00ff41 #050505; scrollbar-width: thin; }
+        .terminal-display::-webkit-scrollbar { width: 10px; }
+        .terminal-display::-webkit-scrollbar-track { background: #050505; border-left: 1px solid rgba(0, 255, 65, 0.15); border-radius: 10px; }
+        .terminal-display::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00ff41, #00802a); border-radius: 10px; border: 2px solid #050505; box-shadow: 0 0 6px rgba(0, 255, 65, 0.6); }
+        .terminal-display::-webkit-scrollbar-thumb:hover { background: #00ff41; box-shadow: 0 0 12px #00ff41; }
 
         #matrixCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.25; pointer-events: none; }
 
-        @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } .glow-wrapper { margin-top: 40px; } .info-layout { flex-direction: column; text-align: center; } .info-text-area { text-align: center; } .info-features { text-align: left; } }
+        @keyframes slideUpFade { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-border { 0% { border-color: var(--accent-main); box-shadow: 0 0 15px var(--accent-main); } 100% { border-color: var(--accent-danger); box-shadow: 0 0 35px var(--accent-danger); } }
+        
     </style>
 </head>
 <body>
+    <div id="legalAcceptanceOverlay" style="position: fixed; inset: 0; z-index: 999999; background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); justify-content: center; align-items: center; opacity: 1; transition: opacity 0.5s ease;">
+        <div style="background: var(--bg-panel); padding: 40px; border-radius: 16px; border: 1px solid var(--border-color); max-width: 600px; width: 90%; text-align: center; box-shadow: var(--shadow); transform: translateY(20px); animation: slideUpFade 0.5s ease forwards;">
+
+            <img src="Saiffuddin.png" alt="Sai" style="width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--accent-main); margin-bottom: 20px; box-shadow: 0 0 25px var(--accent-glow);" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='">
+            
+            <h2 style="color: var(--text-main); margin-bottom: 10px; font-weight: 900; letter-spacing: 2px;">AURA ENGINE SUITE</h2>
+            
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5;">
+                Before accessing the engine, you must read and accept our official 
+                <a href="https://aura-legal-portal.vercel.app/" target="_blank" class="legal-external-link" style="color: var(--accent-main); text-decoration: none; font-weight: bold; border-bottom: 1px dashed var(--accent-main);">Terms, Conditions and Privacy Policy</a>.
+            </p>
+            
+            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 30px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <input type="checkbox" id="cbAcceptLegal" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent-main);">
+                <label for="cbAcceptLegal" style="color: var(--text-main); font-size: 0.9rem; cursor: pointer; user-select: none;">I have read and agree to the policies.</label>
+            </div>
+
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button class="btn" id="btnDenyLegal" style="background: transparent; border: 1px solid var(--accent-danger); color: var(--accent-danger); padding: 10px 25px; border-radius: 8px; font-weight: 600; cursor: pointer;">Deny & Exit</button>
+                <button class="btn" id="btnAllowLegal" style="background: var(--accent-main); border: none; color: var(--bg-base); padding: 10px 25px; border-radius: 8px; font-weight: 800; opacity: 0.5; cursor: not-allowed; transition: 0.3s;" disabled>Allow & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fpsCounter" style="position: fixed; top: 15px; left: 50%; transform: translateX(-50%); font-family: monospace; font-size: 0.85rem; font-weight: bold; color: #48ff00; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(72,255,0,0.4); z-index: 2147483647; display: none; pointer-events: none; text-shadow: 0 0 8px rgba(72,255,0,0.6); backdrop-filter: blur(5px);">0 FPS</div>
+    
+    <div id="appSplashOverlay" style="position:fixed; inset:0; z-index:100000; background:var(--bg-base); flex-direction:column; align-items:center; justify-content:center; transition: opacity 0.6s ease; overflow: hidden;">
+        <div id="splashBgPattern" class="splash-pattern-container"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; z-index: 1;">
+            <img src="yt2mp3-icon.png" alt="Aura Engine Icon" style="width: 130px; height: 130px; object-fit: contain; filter: drop-shadow(0 0 25px var(--accent-glow)); display: block;" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem; color: var(--accent-main); text-shadow: 0 0 15px var(--accent-glow);"></i>
+                <span id="splashStatusText" style="font-size: 0.8rem; color: var(--accent-main); text-shadow: 0 0 10px var(--accent-glow); font-family: monospace; letter-spacing: 2px; text-transform: uppercase; font-weight: bold; text-align: center;">INITIALIZING ENGINE...</span>
+            </div>
+        </div>
+        
+        <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.05); z-index: 1;">
+            <div id="splashProgressBar" style="position: relative; height: 100%; width: 0%; background: var(--accent-main); box-shadow: 0 0 15px var(--accent-glow); transition: width 0.3s ease-out;">
+                <span id="splashPctText" style="position: absolute; right: 0; top: -25px; transform: translateX(50%); color: var(--accent-main); font-weight: bold; font-family: monospace; font-size: 0.9rem; text-shadow: 0 0 10px var(--accent-glow);">0%</span>
+            </div>
+        </div>
+    </div>
+    
+    <div id="appIntroOverlay" style="position:fixed; inset:0; z-index:99999; background:var(--bg-base); flex-direction:column; align-items:center; justify-content:center; transition: transform 0.8s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.8s ease;">
+        <div class="collab-branding" style="position: absolute; top: 30px; left: 40px; display: flex; align-items: center; gap: 15px; z-index: 100001; pointer-events: none;">
+            <img src="yt2mp3-icon.png" alt="Aura Engine Icon" style="width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 0 10px var(--accent-glow));" onerror="this.style.display='none'">
+        </div>
+        <img src="Saiffuddin.png" style="width:150px; height:150px; border-radius:50%; border:3px solid var(--accent-main); box-shadow:0 0 30px var(--accent-glow); margin-bottom:20px; object-fit:cover; animation: pulse-border 2s infinite alternate;" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='">
+        <h1 style="color:var(--accent-main); text-shadow:0 0 20px var(--accent-glow); letter-spacing:4px; margin-bottom:10px; font-weight:900; text-transform:uppercase; text-align:center; font-size: 2.8rem;">YT2MP3 ENGINE V1.2<br>AURA ENGINE SUITE</h1>
+        <p style="color:var(--text-muted); font-size:1.1rem; letter-spacing:2px; font-weight:600;">BY SAI THE LIMIT</p>
+    </div>
 
     <div id="toast-container"></div>
 
@@ -249,7 +478,6 @@
             <div class="bg-marquee-row"><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span></div>
             <div class="bg-marquee-row"><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span></div>
             <div class="bg-marquee-row"><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span></div>
-            <div class="bg-marquee-row"><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span><span>YT2MP3</span></div>
         </div>
         
         <div class="conversion-flow-anim">
@@ -265,11 +493,24 @@
     <div class="glow-wrapper">
         <div class="container" id="mainContainer">
             
+            <div class="top-left-btn-group">
+                <button id="containerBackBtn" class="container-back-btn" onclick="resetUI()" title="Back — start a new conversion"><i class="fas fa-arrow-left"></i></button>
+                <button id="webNoticeBtn" class="web-notice-btn" style="display:none; font-family: serif;" onclick="openWebNoticeDialog()" title="Web Version Setup Info">i</button>
+            </div>
             <button id="toggleMetaBtn" class="toggle-meta-btn" onclick="toggleMetadata()">Clear Attach File Info</button>
+
+            <div class="input-mode-toggle-wrapper mode-custom" id="inputModeToggleWrapper">
+                <span class="mode-label mode-label-left active" id="modeLabelCustom">Custom Inputs</span>
+                <label class="neon-switch" title="Switch between Custom Inputs and YT Credits">
+                    <input type="checkbox" id="inputModeSwitch" onchange="toggleInputSourceMode()">
+                    <span class="neon-slider"></span>
+                </label>
+                <span class="mode-label mode-label-right" id="modeLabelYt">YT Credits</span>
+            </div>
 
             <div class="header-section">
                 <h1>YT to MP3</h1>
-                <p class="subtitle">NextGen Audio & Metadata Engine</p>
+                <p class="subtitle">Advanced Audio & Metadata Engine (V1.2)</p>
                 <p class="copyright-sub">©2026 BY SAI THE LIMIT</p>
             </div>
 
@@ -278,7 +519,7 @@
                     <div class="panel-title">Album Art (1:1)</div>
                     <div class="art-upload-box" id="uploadBox">
                         <input type="file" id="artInput" accept="image/*" onchange="openCropModal(event)">
-                        <img id="artPreview" class="art-preview-img" src="" alt="Album Art">
+                        <img id="artPreview" class="art-preview-img" alt="Album Art" onerror="if (typeof handleArtPreviewError === 'function') handleArtPreviewError(event)">
                         
                         <button class="remove-art-btn" id="removeArtBtn" onclick="removeArt(event)">✖</button>
                         
@@ -286,6 +527,11 @@
                             <i class="fas fa-image" style="font-size: 32px; margin-bottom: 10px; opacity: 0.6;"></i><br>
                             Click to Upload Image<br><small>(Auto-crops to 1:1)</small>
                         </div>
+                    </div>
+
+                    <div class="radio-group" id="artSourceGroup" style="margin-top: 10px; justify-content: center;">
+                        <label><input type="radio" name="artSourceMode" value="custom" checked onchange="toggleArtSourceMode()"> Custom</label>
+                        <label><input type="radio" name="artSourceMode" value="ytThumbnail" onchange="toggleArtSourceMode()"> YT Thumbnail</label>
                     </div>
                     
                     <label class="dl-art-toggle">
@@ -298,7 +544,7 @@
                     <div class="panel-title">Source & Data</div>
                     <input type="text" id="urlInput" placeholder="Paste YouTube link here..." autocomplete="off">
                     
-                    <div class="meta-inputs" id="metaInputsGroup">
+                    <div class="meta-inputs" id="metaInputsGroup" style="margin-top: 15px;">
                         <div class="title-controls">
                             <span style="font-size: 0.85rem; color:#8e8e8e;">Title Source:</span>
                             <div class="radio-group">
@@ -308,15 +554,15 @@
                             </div>
                         </div>
                         
-                        <input type="text" id="metaTitle" placeholder="Track Title (Waiting for URL...)" disabled oninput="saveInputs()">
+                        <input type="text" id="metaTitle" placeholder="Track Title (Waiting for URL...)" disabled oninput="saveInputs()" style="margin-bottom: 15px;">
                         
                         <div class="form-row">
-                            <input type="text" id="metaArtist" placeholder="Contributing Artist" oninput="saveInputs()">
-                            <input type="text" id="metaAlbum" placeholder="Album Name" oninput="saveInputs()">
+                            <input type="text" id="metaArtist" placeholder="Contributing Artist" maxlength="50" oninput="clampField(this,50); saveInputs()">
+                            <input type="text" id="metaAlbum" placeholder="Album Name" maxlength="50" oninput="clampField(this,50); saveInputs()">
                         </div>
-                        <div class="form-row">
-                            <input type="number" id="metaYear" placeholder="Year" min="1900" max="2099" oninput="saveInputs()">
-                            <input type="text" id="metaGenre" placeholder="Genre" oninput="saveInputs()">
+                        <div class="form-row" style="margin-top: 15px;">
+                            <input type="text" id="metaYear" placeholder="Year" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" oninput="clampYear(this); saveInputs()">
+                            <input type="text" id="metaGenre" placeholder="Genre" maxlength="50" oninput="clampField(this,50); saveInputs()">
                         </div>
                     </div>
 
@@ -329,14 +575,25 @@
                 </div>
             </div>
 
-            <button id="convertBtn" class="main-btn" onclick="startConversion()">Convert Now</button>
-
             <div class="status-area" id="statusArea">
+                <div class="progress-label" id="downloadProgressLabel">
+                    <span>Downloading</span><span class="pct" id="downloadProgressPct">0%</span>
+                </div>
                 <div class="progress-track" id="progressTrack">
                     <div class="progress-fill" id="progressFill"></div>
                 </div>
-                <button class="download-trigger-btn" id="triggerDownloadBtn" onclick="openDownloadDialog()">View & Download MP3</button>
+
+                <div class="progress-label encoding-label" id="encodingProgressLabel" style="display:none;">
+                    <span>4/4 Packaging &amp; Encoding MP3</span><span class="pct" id="encodingProgressPct">0%</span>
+                </div>
+                <div class="progress-track encoding-track" id="encodingProgressTrack" style="display:none;">
+                    <div class="progress-fill encoding-fill" id="encodingProgressFill"></div>
+                </div>
             </div>
+
+            <button id="convertBtn" class="main-btn" onclick="startConversion()">Convert Now</button>
+
+            <button class="download-trigger-btn" id="triggerDownloadBtn" onclick="openDownloadDialog()">View & Download MP3</button>
         </div>
     </div>
 
@@ -348,26 +605,58 @@
         <div class="dialog-content">
             <div class="info-layout">
                 <div class="info-text-area">
-                    <h2 class="info-title">YT2MP3 App V1.0</h2>
+                    <h2 class="info-title">YT2MP3 App V1.2</h2>
                     <div class="info-section-title">About</div>
-                    <p class="info-desc">Advanced YouTube to MP3 engine built for flawless audio extraction and perfect metadata tagging.</p>
+                    <p class="info-desc">Professional-grade, standalone desktop engine for seamless YouTube audio extraction and advanced metadata customization.</p>
                 </div>
                 <img src="Saiffuddin.png" alt="Profile Avatar" class="neon-avatar" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='">
             </div>
-            
+
             <ul class="info-features">
-                <li><strong style="color:#ff007f;">Auto-Sync ID3:</strong> Info bakes directly into the MP3 file securely.</li>
-                <li><strong style="color:#00d2ff;">1:1 Art Crop:</strong> Upload and perfectly frame your cover art.</li>
-                <li><strong style="color:#ffaa00;">Wipe Data Memory:</strong> 'Clear Attach File Info' acts as a temporary cache.</li>
-                <li><strong style="color:#92fe9d;">Smart Persistence:</strong> Your inputs auto-save across browser sessions.</li>
+                <li><strong style="color:#ff007f;">Dual Engine:</strong> High-performance execution matching the environment (Web Server or Electron Desktop).</li>
+                <li><strong style="color:#00d2ff;">Advanced Trimming:</strong> Precise time-code audio cutting with live preview synchronization prior to export.</li>
+                <li><strong style="color:#ffaa00;">Smart Metadata &amp; Art:</strong> Automated YouTube credit scraping, custom cover cropping, and ID3 tag injection.</li>
+                <li><strong style="color:#92fe9d;">Seamless Persistence:</strong> Secure session auto-saving and state recovery across app relaunches.</li>
             </ul>
 
-            <div class="info-contact">
-                For any inquiries, please contact me at:<br>
-                <a href="mailto:sfmuhammmad327@gmail.com"><i class="fas fa-envelope"></i> sfmuhammmad327@gmail.com</a>
+            <div class="legal-agreement-box">
+                <img src="legal_icon.png" alt="Legal" class="legal-agreement-icon" onerror="this.style.display='none'">
+                <div class="legal-agreement-text">
+                    <div class="legal-agreement-title">Legal Agreements &amp; Consent</div>
+                    <p>By using this app, you acknowledge and agree to our terms covering local browser storage, offline cache management, and metadata processing — all handled entirely on your device.</p>
+                    <a href="https://aura-legal-portal.vercel.app/" target="_blank" class="legal-agreement-link">
+                        <i class="fas fa-arrow-up-right-from-square"></i> Read Full Terms &amp; Privacy Policy
+                    </a>
+                </div>
             </div>
-            
+
             <button class="dialog-btn btn-back" style="width: 100%; margin-top: 25px;" onclick="closeInfoDialog()">Understood</button>
+        </div>
+    </dialog>
+
+    <dialog id="webNoticeDialog">
+        <div class="dialog-content">
+            <h2 class="info-title" style="margin-bottom: 15px;"><i class="fas fa-server" style="color:var(--accent-main); margin-right: 8px;"></i>Running the Web Version</h2>
+
+            <p class="info-desc">This browser page is just the front end — conversions are done by a small local backend that has to be running on your own machine.</p>
+
+            <div class="legal-agreement-box" style="margin-bottom: 15px;">
+                <div class="legal-agreement-text">
+                    <div class="legal-agreement-title">Before you convert</div>
+                    <p>Open a terminal in the project folder and start the backend once per session:</p>
+                    <p style="margin-top:8px;"><code>node server.js</code></p>
+                    <p style="margin-top:8px;">Leave that terminal window running — the page talks to it at <code>http://127.0.0.1:5000</code>. If a conversion says <em>"Server rejected request"</em> or <em>"Lost connection to local server.js"</em>, this is almost always why.</p>
+                </div>
+            </div>
+
+            <div class="legal-agreement-box">
+                <div class="legal-agreement-text">
+                    <div class="legal-agreement-title">Seeing "exit code 1"?</div>
+                    <p>YouTube occasionally blocks one client profile while another works fine. The backend already retries automatically across several client profiles on its own — but if it still fails after that, it's usually a temporary block on YouTube's side, not a broken setup. Just hit <strong>Convert</strong> again; it commonly succeeds within a try or two.</p>
+                </div>
+            </div>
+
+            <button class="dialog-btn btn-back" style="width: 100%; margin-top: 25px;" onclick="closeWebNoticeDialog()">Got it</button>
         </div>
     </dialog>
 
@@ -382,11 +671,25 @@
         </div>
     </dialog>
 
-    <dialog id="downloadDialog">
+    <dialog id="downloadDialog" style="max-width: 550px;">
         <div class="dialog-content" style="align-items: center; text-align: center;">
-            <img id="dlgArt" class="dialog-art" src="" alt="Art Preview">
+            <div class="dialog-art-frame" id="dlgArtFrame">
+                <img id="dlgArt" class="dialog-art" src="" alt="Art Preview">
+                <span class="dlg-no-album-text" id="dlgNoAlbumText">No Album</span>
+            </div>
             <div id="dlgFilename" class="dialog-filename">filename.mp3</div>
             
+            <audio id="previewAudio" style="display:none;"></audio>
+            <div class="custom-audio-player">
+                <button id="customPlayBtn" class="custom-play-btn" onclick="togglePlay()"><i class="fas fa-play"></i></button>
+                <div class="progress-container" id="customProgressContainer" onclick="seekAudio(event)">
+                    <div class="progress-bar-fill" id="customProgressBar"></div>
+                </div>
+                <div class="time-display">
+                    <span id="currentTimeDisplay">00:00</span> / <span id="durationDisplay">00:00</span>
+                </div>
+            </div>
+
             <div class="dialog-meta-grid">
                 <strong>Title:</strong> <span id="dlgTitle">-</span>
                 <strong>Artist:</strong> <span id="dlgArtist">-</span>
@@ -395,9 +698,39 @@
                 <strong>Genre:</strong> <span id="dlgGenre">-</span>
             </div>
 
+            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: left; width: 100%; border: 1px solid rgba(255,255,255,0.05);">
+                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; cursor: pointer; color: #00d2ff; font-weight: 600; font-size: 0.9rem;">
+                    <input type="checkbox" id="dlgTrimCheck" style="accent-color: #ff007f; width: 16px; height: 16px;" onchange="toggleTrimInputs()">
+                    <span>Enable Audio Trimming Before Export</span>
+                </label>
+                <div id="trimInputsGroup" style="display: flex; justify-content: space-between; gap: 15px; opacity: 0.5; pointer-events: none; transition: 0.3s ease;">
+                    
+                    <div>
+                        <label style="font-size: 0.75rem; color: #8e8e8e; margin-bottom: 5px; display: block;">Start Time (HH:MM:SS.ms)</label>
+                        <div id="startInputWrapper" class="time-input-group">
+                            <input type="number" id="startHH" value="00" min="0" oninput="formatAndSync(this, 2, 'start')" onclick="this.select()"><span>:</span>
+                            <input type="number" id="startMM" value="00" min="0" max="59" oninput="formatAndSync(this, 2, 'start')" onclick="this.select()"><span>:</span>
+                            <input type="number" id="startSS" value="00" min="0" max="59" oninput="formatAndSync(this, 2, 'start')" onclick="this.select()"><span>.</span>
+                            <input type="number" id="startMS" class="ms-input" value="000" min="0" max="999" oninput="formatAndSync(this, 3, 'start')" onclick="this.select()">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.75rem; color: #8e8e8e; margin-bottom: 5px; display: block;">End Time (HH:MM:SS.ms)</label>
+                        <div id="endInputWrapper" class="time-input-group">
+                            <input type="number" id="endHH" value="00" min="0" oninput="formatAndSync(this, 2, 'end')" onclick="this.select()"><span>:</span>
+                            <input type="number" id="endMM" value="00" min="0" max="59" oninput="formatAndSync(this, 2, 'end')" onclick="this.select()"><span>:</span>
+                            <input type="number" id="endSS" value="00" min="0" max="59" oninput="formatAndSync(this, 2, 'end')" onclick="this.select()"><span>.</span>
+                            <input type="number" id="endMS" class="ms-input" value="000" min="0" max="999" oninput="formatAndSync(this, 3, 'end')" onclick="this.select()">
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
             <div class="dialog-buttons">
                 <button class="dialog-btn btn-back" onclick="closeDownloadDialog()">Back</button>
-                <button class="dialog-btn btn-confirm" onclick="executeFinalDownload()">Download</button>
+                <button class="dialog-btn btn-confirm" onclick="executeFinalDownload()">Export & Download</button>
             </div>
         </div>
     </dialog>
@@ -411,95 +744,435 @@
                     <button class="terminal-sync-btn" id="clearTerminalBtn" onclick="clearTerminal()">
                         <i class="fas fa-eraser"></i> CLS
                     </button>
-                    <button class="terminal-sync-btn" id="manualSyncBtn" onclick="forceSyncTerminal()">
-                        <i class="fas fa-sync-alt"></i> Sync
-                    </button>
                     <button class="dialog-btn btn-back" style="flex: none; padding: 6px 12px; width: auto; background: rgba(0,255,65,0.1); color: #00ff41; border: 1px solid #00ff41;" onclick="closeTerminalDialog()">✖ Close</button>
                 </div>
             </div>
             <div id="terminalLogDisplay" class="terminal-display">
-> root@nextgen-converter:~# systemctl status engine
-> Awaiting backend connection payload...
+                > root@advanced-converter:~# systemctl status engine
+                > Awaiting connection payload...</div>
             </div>
-        </div>
     </dialog>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     
     <script>
-        const BACKEND_URL = 'http://127.0.0.1:5000';
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => console.log(err));
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        const isElectron = typeof require !== 'undefined' && typeof process !== 'undefined' && process.versions && !!process.versions.electron;
+        let fs, path, youtubedl, NodeID3, os, execSync;
         
+        if (isElectron) {
+            fs = require('fs');
+            path = require('path');
+            NodeID3 = require('node-id3');
+            os = require('os');
+            execSync = require('child_process').execSync;
+            
+            const ytdlRaw = require('youtube-dl-exec');
+
+            let binPath = path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe');
+            if (binPath.includes('app.asar')) {
+                binPath = binPath.replace('app.asar', 'app.asar.unpacked');
+            }
+            if (fs.existsSync(binPath)) {
+                youtubedl = ytdlRaw.create(binPath);
+            } else {
+                youtubedl = ytdlRaw;
+            }
+        }
+
+        const YTDLP_CLIENT_FALLBACKS = ['android', 'ios', 'tv', 'web_safari', 'web'];
+
+        const OFFLINE_TOAST_ID = 'conn-offline-toast';
+        const SLOW_CONN_TOAST_ID = 'conn-slow-toast';
+        let isOffline = !navigator.onLine;
+
+        function dismissToastById(id) {
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('show'); el.classList.add('hide'); setTimeout(() => el.remove(), 400); }
+        }
+
+        window.addEventListener('offline', () => {
+            isOffline = true;
+            showToast('⚠️ No internet connection. Waiting to reconnect...', 'error', 0, OFFLINE_TOAST_ID);
+            if (isProcessing) appendTerminalLog('\n⚠️ Internet connection lost — waiting to reconnect...');
+        });
+        window.addEventListener('online', () => {
+            if (!isOffline) return;
+            isOffline = false;
+            dismissToastById(OFFLINE_TOAST_ID);
+            if (isProcessing) {
+                appendTerminalLog('✅ Internet connection restored — resuming...');
+                showToast('Back online — resuming...', 'success', 3000);
+            }
+        });
+
+        let lastProgressTickAt = 0;
+        let lastProgressSnapshot = -1;
+        setInterval(() => {
+            if (!isProcessing || isOffline) return;
+            const now = Date.now();
+            const snapshot = currentDownloadPct + currentEncodingPct;
+            if (snapshot !== lastProgressSnapshot) {
+                lastProgressSnapshot = snapshot;
+                lastProgressTickAt = now;
+                dismissToastById(SLOW_CONN_TOAST_ID);
+                return;
+            }
+            if (lastProgressTickAt && (now - lastProgressTickAt > 15000)) {
+                showToast('🐢 Slow connection detected — please wait...', 'warning', 0, SLOW_CONN_TOAST_ID);
+            }
+        }, 3000);
+
+        function resetConnectivityWatchdog() {
+            lastProgressTickAt = Date.now();
+            lastProgressSnapshot = -1;
+            dismissToastById(SLOW_CONN_TOAST_ID);
+            dismissToastById(OFFLINE_TOAST_ID);
+        }
+
+        function isTransientYtError(msg) {
+            return /403|forbidden|js runtime|sign in to confirm|http error 4\d\d|unable to download video data/i.test(msg || '');
+        }
+
+        function isPermanentYtError(msg) {
+            return /video unavailable|private video|this video is (?:not available|no longer available)|video has been removed|account associated with this video has been terminated|copyright|does not exist|no longer available|members-only|premieres in|this live event will begin/i.test(msg || '');
+        }
+
+        async function fetchVideoInfoWithFallback(urlInput) {
+            let lastErr;
+            for (let i = 0; i < YTDLP_CLIENT_FALLBACKS.length; i++) {
+                const client = YTDLP_CLIENT_FALLBACKS[i];
+                try {
+                    return await youtubedl(urlInput, { dumpJson: true, noWarnings: true, extractorArgs: `youtube:player_client=${client}`, retries: 1, socketTimeout: 10 });
+                } catch (err) {
+                    lastErr = err;
+                    const msg = err.message || String(err);
+                    const isLastAttempt = i === YTDLP_CLIENT_FALLBACKS.length - 1;
+                    if (isPermanentYtError(msg) || isLastAttempt) throw err;
+                    appendTerminalLog(`⚠️ Metadata lookup via '${client}' client blocked/failed (${(msg || 'unknown error').slice(0, 80)}), trying next client...`);
+                }
+            }
+            throw lastErr || new Error('Unable to retrieve video metadata from any client.');
+        }
+
+        function fetchThumbnailBuffer(url, redirectsLeft = 5) {
+            return new Promise((resolve) => {
+                try {
+                    const lib = url.startsWith('https:') ? require('https') : require('http');
+                    const req = lib.get(url, {
+                        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                        timeout: 12000
+                    }, (res) => {
+                        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location && redirectsLeft > 0) {
+                            res.resume();
+                            fetchThumbnailBuffer(res.headers.location, redirectsLeft - 1).then(resolve);
+                            return;
+                        }
+                        if (res.statusCode !== 200) {
+                            res.resume();
+                            resolve(null);
+                            return;
+                        }
+                        const mime = res.headers['content-type'] || 'image/jpeg';
+                        const chunks = [];
+                        res.on('data', (c) => chunks.push(c));
+                        res.on('end', () => resolve({ buffer: Buffer.concat(chunks), mime }));
+                        res.on('error', () => resolve(null));
+                    });
+                    req.on('timeout', () => { req.destroy(); resolve(null); });
+                    req.on('error', () => resolve(null));
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }
+
+        function cropDataUrlToSquare(dataUrl, size = 640) {
+            return new Promise((resolve) => {
+                if (!dataUrl) { resolve(dataUrl); return; }
+                try {
+                    const img = new Image();
+                    img.onload = () => {
+                        try {
+                            const side = Math.min(img.naturalWidth, img.naturalHeight);
+                            if (!side) { resolve(dataUrl); return; }
+                            const sx = (img.naturalWidth - side) / 2;
+                            const sy = (img.naturalHeight - side) / 2;
+                            const canvas = document.createElement('canvas');
+                            canvas.width = size;
+                            canvas.height = size;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                            resolve(canvas.toDataURL('image/jpeg', 0.92));
+                        } catch (e) {
+                            resolve(dataUrl);
+                        }
+                    };
+                    img.onerror = () => resolve(dataUrl);
+                    img.src = dataUrl;
+                } catch (e) {
+                    resolve(dataUrl);
+                }
+            });
+        }
+
+        async function fetchThumbnailBufferWeb(url) {
+            let dataUrl = null;
+            try {
+                const res = await fetch(`http://127.0.0.1:5000/thumbnail?url=${encodeURIComponent(url)}`);
+                if (res.ok) {
+                    const blob = await res.blob();
+                    dataUrl = await new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(blob);
+                    });
+                }
+            } catch (e) { }
+
+            if (!dataUrl) {
+                try {
+                    let res;
+                    try {
+                        res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                        if (!res.ok) throw new Error();
+                    } catch (e) {
+                        res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+                    }
+                    if (res && res.ok) {
+                        const blob = await res.blob();
+                        dataUrl = await new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.onerror = () => resolve(null);
+                            reader.readAsDataURL(blob);
+                        });
+                    }
+                } catch (e) { }
+            }
+
+            if (!dataUrl) return null;
+            return cropDataUrlToSquare(dataUrl);
+        }
+
+        async function postConvertWithRetry(payload, maxWaitMs = 25000) {
+            const start = Date.now();
+            let attempt = 0;
+            showToast('Connecting to local server.js...', 'info', 0, 'server-connect-toast');
+            while (Date.now() - start < maxWaitMs) {
+                attempt++;
+                try {
+                    const res = await fetch('http://127.0.0.1:5000/convert', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    dismissToastById('server-connect-toast');
+                    return res;
+                } catch (e) {
+                    if (attempt === 1) {
+                        appendTerminalLog(`⚠️ Could not reach server.js yet — is it running? Retrying...`);
+                    }
+                    await new Promise(r => setTimeout(r, 1500));
+                }
+            }
+            dismissToastById('server-connect-toast');
+            throw new Error('Could not connect to server.js. Make sure it is running (run "node server.js" in the project folder) and listening on port 5000, then try again.');
+        }
+
         let selectedBitrate = '320';
         let currentImageDataUrl = null;
         let lastDownloadedImageHash = null; 
-        
         let finalMp3Url = '';
         let finalFilename = '';
         let fetchedYtTitle = '';
         let cropper = null;
-        let pollInterval = null;
-        let lastKnownStatus = '';
+        let globalFinalAudioPath = ''; 
+        let isProcessing = false; 
+        let currentDlProcess = null; 
 
         let synthesizedLogs = [
-            "> root@nextgen-converter:~# systemctl status engine",
-            "> Awaiting backend connection payload..."
+            "> root@advanced-converter:~# systemctl status engine",
+            "> Awaiting connection payload..."
         ];
-        let currentTaskId = null;
 
         let isMetaCleared = false;
-        let tempSavedMeta = {
-            titleMode: 'auto', title: '', artist: '', album: '', year: '', genre: '', imageDataUrl: null
-        };
+        let tempSavedMeta = { titleMode: 'auto', title: '', artist: '', album: '', year: '', genre: '', imageDataUrl: null };
+        let fetchedVideoInfo = null;
+        let fetchedYtThumbnail = '';
+        let fetchedYtThumbnailDataUrl = null; 
+        let globalTrackTags = null;
+        let lastEmbeddedArtDataUrl = null;
 
-        window.onload = () => {
+        let inputSourceMode = 'custom';
+        let tempCustomMetaForYtCredits = null; 
+
+        function clampField(el, max) { if (el.value.length > max) el.value = el.value.slice(0, max); return el.value; }
+        function clampYear(el) { el.value = el.value.replace(/[^0-9]/g, '').slice(0, 4); return el.value; }
+        function sanitizeMetaText(str, max = 50) { return (str || '').toString().slice(0, max); }
+        function sanitizeYearValue(str) { return (str || '').toString().replace(/[^0-9]/g, '').slice(0, 4); }
+
+        window.addEventListener('DOMContentLoaded', async () => {
             initBackgroundIcons();
             initMatrixBackground();
+            appendTerminalLog("");
 
-            showToast(
-                '<b>Engine Startup Reminder:</b> Please ensure your backend is running. Open your command prompt and execute: <code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-family:monospace; color:#00d2ff;">node server.js</code>', 
-                'warning', 
-                10000
-            );
-        };
+            const legalOverlay = document.getElementById('legalAcceptanceOverlay');
+            const splashOverlay = document.getElementById('appSplashOverlay');
+            const introOverlay = document.getElementById('appIntroOverlay');
+
+            const isLegalAccepted = localStorage.getItem('legalAccepted_Aura') === 'true';
+            const isIntroPlayed = sessionStorage.getItem('introPlayed_Aura') === 'true';
+
+            if (!isElectron) {
+                document.getElementById('dlgTrimCheck').disabled = true;
+                document.getElementById('dlgTrimCheck').nextElementSibling.innerHTML += " <i>(Requires Desktop App)</i>";
+                document.getElementById('trimInputsGroup').style.display = 'none';
+                document.getElementById('webNoticeBtn').style.display = 'flex';
+            }
+
+            if (isLegalAccepted) {
+                legalOverlay.style.display = 'none';
+                if (isIntroPlayed) {
+                    splashOverlay.style.display = 'none';
+                    introOverlay.style.display = 'none';
+                    document.body.classList.add('app-ready');
+                } else {
+                    sessionStorage.setItem('introPlayed_Aura', 'true');
+                    runSplashSequence();
+                }
+            } else {
+                legalOverlay.style.display = 'flex';
+                const cb = document.getElementById('cbAcceptLegal');
+                const btnAllow = document.getElementById('btnAllowLegal');
+                const btnDeny = document.getElementById('btnDenyLegal');
+
+                cb.addEventListener('change', (e) => {
+                    if(e.target.checked) {
+                        btnAllow.style.opacity = '1';
+                        btnAllow.style.cursor = 'pointer';
+                        btnAllow.disabled = false;
+                    } else {
+                        btnAllow.style.opacity = '0.5';
+                        btnAllow.style.cursor = 'not-allowed';
+                        btnAllow.disabled = true;
+                    }
+                });
+
+                btnDeny.addEventListener('click', () => {
+                    if(isElectron) { require('electron').remote?.app?.quit(); window.close(); } else { window.close(); }
+                });
+
+                btnAllow.addEventListener('click', () => {
+                    localStorage.setItem('legalAccepted_Aura', 'true');
+                    sessionStorage.setItem('introPlayed_Aura', 'true');
+                    legalOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        legalOverlay.style.display = 'none';
+                        runSplashSequence();
+                    }, 500);
+                });
+            }
+
+            async function runSplashSequence() {
+                splashOverlay.style.opacity = '0';
+                splashOverlay.style.display = 'flex';
+                void splashOverlay.offsetWidth; 
+                requestAnimationFrame(() => { splashOverlay.style.opacity = '1'; });
+
+                const pctText = document.getElementById('splashPctText');
+                const progBar = document.getElementById('splashProgressBar');
+                const statText = document.getElementById('splashStatusText');
+
+                const steps = [
+                    {p: 20, t: "MOUNTING CORE MODULES..."},
+                    {p: 50, t: "ESTABLISHING FFMPEG PROTOCOLS..."},
+                    {p: 80, t: "SYNCING AUDIO CODECS..."},
+                    {p: 100, t: "SYSTEM ONLINE."}
+                ];
+
+                for(let step of steps) {
+                    await new Promise(r => setTimeout(r, 600)); 
+                    progBar.style.width = step.p + '%';
+                    pctText.innerText = step.p + '%';
+                    statText.innerText = step.t;
+                }
+
+                await new Promise(r => setTimeout(r, 500));
+                splashOverlay.style.opacity = '0';
+                
+                setTimeout(() => {
+                    splashOverlay.style.display = 'none';
+                    runIntroSequence();
+                }, 600);
+            }
+
+            function runIntroSequence() {
+                introOverlay.style.opacity = '0';
+                introOverlay.style.transform = 'scale(0.96)';
+                introOverlay.style.display = 'flex';
+                void introOverlay.offsetWidth; 
+                requestAnimationFrame(() => {
+                    introOverlay.style.opacity = '1';
+                    introOverlay.style.transform = 'scale(1)';
+                });
+
+                setTimeout(() => {
+                    introOverlay.style.opacity = '0';
+                    introOverlay.style.transform = 'scale(1.1)';
+                    document.body.classList.add('app-ready');
+                    setTimeout(() => { introOverlay.style.display = 'none'; }, 800);
+                }, 2000);
+            }
+        });
+
+        document.querySelectorAll('dialog').forEach(dialog => {
+            dialog.addEventListener('cancel', (event) => {
+                event.preventDefault(); 
+                if (dialog.id === 'infoDialog') closeInfoDialog();
+                else if (dialog.id === 'webNoticeDialog') closeWebNoticeDialog();
+                else if (dialog.id === 'terminalDialog') closeTerminalDialog();
+                else if (dialog.id === 'downloadDialog') closeDownloadDialog();
+                else if (dialog.id === 'cropDialog') cancelCrop();
+            });
+        });
 
         function initMatrixBackground() {
             const canvas = document.getElementById('matrixCanvas');
             const ctx = canvas.getContext('2d');
-            
-            canvas.width = 800;
-            canvas.height = 500;
-
+            canvas.width = 800; canvas.height = 500;
             const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ'.split('');
-            const fontSize = 14;
-            const columns = canvas.width / fontSize;
+            const fontSize = 14; const columns = canvas.width / fontSize;
             const drops = [];
-
             for (let x = 0; x < columns; x++) drops[x] = 1;
 
-            function drawMatrix() {
+            setInterval(() => {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
                 ctx.fillStyle = '#0F0'; 
                 ctx.font = fontSize + 'px monospace';
-
                 for (let i = 0; i < drops.length; i++) {
                     const text = chars[Math.floor(Math.random() * chars.length)];
                     ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975)
-                        drops[i] = 0;
-
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
                     drops[i]++;
                 }
-            }
-            setInterval(drawMatrix, 35);
+            }, 35);
         }
 
         function appendTerminalLog(logString) {
-            if (logString !== "") {
-                synthesizedLogs.push(logString);
-            }
+            if (logString !== "") synthesizedLogs.push(logString);
             const termDisplay = document.getElementById('terminalLogDisplay');
             if(termDisplay) {
                 termDisplay.innerHTML = synthesizedLogs.join('\n');
@@ -509,18 +1182,52 @@
 
         function clearTerminal() {
             synthesizedLogs = [
-                "> root@nextgen-converter:~# clear",
+                "> root@advanced-converter:~# clear",
                 "> Terminal cleared. Awaiting new events..."
             ];
             appendTerminalLog("");
         }
 
+        function getVisualWidth(str) {
+            let width = 0;
+            for (const ch of str) {
+                const code = ch.codePointAt(0);
+                const isWide =
+                    (code >= 0x1100 && code <= 0x115F) ||   // Hangul Jamo
+                    (code >= 0x2E80 && code <= 0xA4CF) ||   // CJK Radicals -> Yi
+                    (code >= 0xAC00 && code <= 0xD7A3) ||   // Hangul Syllables
+                    (code >= 0xF900 && code <= 0xFAFF) ||   // CJK Compatibility Ideographs
+                    (code >= 0xFF00 && code <= 0xFF60) ||   // Fullwidth Forms
+                    (code >= 0xFFE0 && code <= 0xFFE6) ||
+                    (code >= 0x1F300 && code <= 0x1FAFF) || // Emoji & symbols
+                    (code >= 0x20000 && code <= 0x3FFFD);   // CJK Ext B+
+                width += isWide ? 2 : 1;
+            }
+            return width;
+        }
+
         function generateAsciiTable(filename, sizeMb, bitrate, title, artist, album) {
-            const padLeft = (str) => String(str).padEnd(11);
+            const COL_WIDTH = 46;
             const padRight = (str) => {
-                let v = `'${str}'`;
-                if(v.length > 46) v = v.substring(0, 43) + "...'";
-                return v.padEnd(46);
+                const raw = typeof str === 'string' ? str : String(str);
+
+                let body = raw;
+                if (getVisualWidth(`'${raw}'`) > COL_WIDTH) {
+                    let truncated = '';
+                    let w = 0;
+                    const budget = COL_WIDTH - getVisualWidth("'...'");
+                    for (const ch of raw) {
+                        const chW = getVisualWidth(ch);
+                        if (w + chW > budget) break;
+                        truncated += ch;
+                        w += chW;
+                    }
+                    body = `${truncated}...`;
+                }
+
+                const val = `'${body}'`;
+                const spaces = COL_WIDTH - getVisualWidth(val);
+                return val + ' '.repeat(spaces > 0 ? spaces : 0);
             };
 
             return `\n🎉 TASK COMPLETE!
@@ -536,33 +1243,6 @@
 │ Album       │ ${padRight(album)} │
 └─────────────┴────────────────────────────────────────────────┘
 ==================================================`;
-        }
-
-        async function forceSyncTerminal() {
-            const syncBtn = document.getElementById('manualSyncBtn');
-            const icon = syncBtn.querySelector('i');
-            
-            icon.classList.add('syncing');
-            syncBtn.style.color = "#fff";
-            
-            appendTerminalLog(`> root@nextgen-converter:~# ping -c 1 backend-server`);
-            
-            try {
-                if(currentTaskId) {
-                    const res = await fetch(`${BACKEND_URL}/status/${currentTaskId}`);
-                    const data = await res.json();
-                    appendTerminalLog(`[OK] Server responded. Task Status: ${data.status.toUpperCase()} | Progress: ${data.progress}%`);
-                } else {
-                    appendTerminalLog(`[WARN] No active conversion tasks running in current session.`);
-                }
-            } catch (e) {
-                appendTerminalLog(`[ERR] Failed to connect to BACKEND_URL: ${e.message}`);
-            }
-
-            setTimeout(() => {
-                icon.classList.remove('syncing');
-                syncBtn.style.color = "#00ff41";
-            }, 1000);
         }
 
         function initBackgroundIcons() {
@@ -588,7 +1268,6 @@
 
         function showToast(msg, type='info', duration=4500, toastId=null) {
             const container = document.getElementById('toast-container');
-            
             if (toastId) {
                 const existingToast = document.getElementById(toastId);
                 if (existingToast) {
@@ -614,6 +1293,7 @@
             if(duration > 0) {
                 setTimeout(() => {
                     toast.classList.remove('show');
+                    toast.classList.add('hide');
                     setTimeout(() => toast.remove(), 400);
                 }, duration);
             }
@@ -645,10 +1325,14 @@
                 album: document.getElementById('metaAlbum').value,
                 year: document.getElementById('metaYear').value,
                 genre: document.getElementById('metaGenre').value,
+                trimChecked: document.getElementById('dlgTrimCheck').checked,
                 titleMode: document.querySelector('input[name="titleMode"]:checked').value,
+                artSourceMode: document.querySelector('input[name="artSourceMode"]:checked').value,
+                inputSourceMode: inputSourceMode,
                 bitrate: selectedBitrate,
                 isMetaCleared: isMetaCleared,
-                tempSavedMeta: tempSavedMeta
+                tempSavedMeta: tempSavedMeta,
+                imageDataUrl: currentImageDataUrl 
             });
         }
 
@@ -661,10 +1345,15 @@
             getReq.onsuccess = (e) => {
                 if(e.target.result) {
                     const data = e.target.result;
-                    document.getElementById('metaArtist').value = data.artist || '';
-                    document.getElementById('metaAlbum').value = data.album || '';
-                    document.getElementById('metaYear').value = data.year || '';
-                    document.getElementById('metaGenre').value = data.genre || '';
+                    document.getElementById('metaArtist').value = sanitizeMetaText(data.artist, 50);
+                    document.getElementById('metaAlbum').value = sanitizeMetaText(data.album, 50);
+                    document.getElementById('metaYear').value = sanitizeYearValue(data.year);
+                    document.getElementById('metaGenre').value = sanitizeMetaText(data.genre, 50);
+                    
+                    if(data.trimChecked !== undefined && isElectron) {
+                        document.getElementById('dlgTrimCheck').checked = data.trimChecked;
+                        toggleTrimInputs();
+                    }
                     
                     if(data.bitrate) {
                         const btn = document.querySelector(`.quality-btn[onclick*="${data.bitrate}"]`);
@@ -675,6 +1364,22 @@
                         const radio = document.querySelector(`input[name="titleMode"][value="${data.titleMode}"]`);
                         if (radio) radio.checked = true;
                         toggleTitleMode();
+                    }
+
+                    if (data.imageDataUrl) {
+                        currentImageDataUrl = data.imageDataUrl;
+                        document.getElementById('artPreview').src = currentImageDataUrl;
+                    }
+
+                    if (data.artSourceMode) {
+                        const artRadio = document.querySelector(`input[name="artSourceMode"][value="${data.artSourceMode}"]`);
+                        if (artRadio) artRadio.checked = true;
+                        toggleArtSourceMode();
+                    }
+
+                    if (data.inputSourceMode === 'ytCredits') {
+                        document.getElementById('inputModeSwitch').checked = true;
+                        toggleInputSourceMode();
                     }
                     
                     if (data.isMetaCleared) {
@@ -689,18 +1394,36 @@
             };
         }
 
-        function updateFormState() {
-            const isConverting = document.getElementById('convertBtn').innerText === 'Processing...';
-            const globalLock = isConverting;
+        function handleArtPreviewError(event) {
+            const img = event.target;
+            if (!img.src) return;
+            const artMode = document.querySelector('input[name="artSourceMode"]:checked')?.value;
+            img.style.display = 'none';
+            img.removeAttribute('src');
+            if (artMode === 'ytThumbnail') {
+                fetchedYtThumbnailDataUrl = null;
+                window.ytThumbFetchFailed = true;
+                renderYtThumbPlaceholder('failed');
+                appendTerminalLog(`⚠️ YT Thumbnail preview failed to decode — will retry during tag injection.`);
+            } else {
+                currentImageDataUrl = null;
+            }
+            document.getElementById('uploadPlaceholder').style.display = 'block';
+        }
 
+        function updateFormState() {
+            const globalLock = isProcessing;
+            const isYtCredits = inputSourceMode === 'ytCredits';
+
+            document.getElementById('convertBtn').disabled = globalLock;
             document.getElementById('urlInput').disabled = globalLock;
-            document.getElementById('toggleMetaBtn').disabled = globalLock;
+            document.getElementById('toggleMetaBtn').disabled = globalLock || isYtCredits;
+            document.getElementById('inputModeSwitch').disabled = globalLock;
             document.querySelectorAll('.quality-btn').forEach(btn => btn.disabled = globalLock);
-            document.querySelectorAll('input[name="titleMode"]').forEach(radio => radio.disabled = globalLock || isMetaCleared);
+            document.querySelectorAll('input[name="titleMode"]').forEach(radio => radio.disabled = globalLock || isMetaCleared || isYtCredits);
             document.getElementById('dlArtCheck').disabled = globalLock;
 
-            const inputsLock = globalLock || isMetaCleared;
-            
+            const inputsLock = globalLock || isMetaCleared || isYtCredits;
             document.getElementById('metaArtist').disabled = inputsLock;
             document.getElementById('metaAlbum').disabled = inputsLock;
             document.getElementById('metaYear').disabled = inputsLock;
@@ -709,14 +1432,54 @@
             const artBox = document.getElementById('uploadBox');
             const artInput = document.getElementById('artInput');
             const removeArtBtn = document.getElementById('removeArtBtn');
-            
-            artInput.disabled = inputsLock;
-            if (inputsLock) {
+            const artPreview = document.getElementById('artPreview');
+            const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+            const artMode = document.querySelector('input[name="artSourceMode"]:checked').value;
+
+            document.querySelectorAll('input[name="artSourceMode"]').forEach(radio => radio.disabled = inputsLock);
+
+            if (globalLock || isMetaCleared) {
                 artBox.classList.add('disabled-box');
+                artInput.disabled = true;
+                removeArtBtn.style.display = 'none';
+            } else if (artMode === 'ytThumbnail') {
+                artBox.classList.add('disabled-box');
+                artInput.disabled = true;
                 removeArtBtn.style.display = 'none';
             } else {
                 artBox.classList.remove('disabled-box');
-                if (currentImageDataUrl) removeArtBtn.style.display = 'block';
+                artInput.disabled = false;
+            }
+
+            if (isMetaCleared) {
+                artPreview.style.display = 'none';
+                uploadPlaceholder.style.display = 'block';
+            } else if (artMode === 'ytThumbnail') {
+                if (fetchedYtThumbnailDataUrl) {
+                    if (artPreview.getAttribute('src') !== fetchedYtThumbnailDataUrl) {
+                        artPreview.src = fetchedYtThumbnailDataUrl;
+                    }
+                    artPreview.style.display = 'block';
+                    uploadPlaceholder.style.display = 'none';
+                    renderYtThumbPlaceholder('attached');
+                } else {
+                    artPreview.style.display = 'none';
+                    uploadPlaceholder.style.display = 'block';
+                    renderYtThumbPlaceholder(window.ytThumbFetchInFlight ? 'loading' : (window.ytThumbFetchFailed ? 'failed' : 'idle'));
+                }
+            } else {
+                if (currentImageDataUrl) {
+                    if (artPreview.getAttribute('src') !== currentImageDataUrl) {
+                        artPreview.src = currentImageDataUrl;
+                    }
+                    artPreview.style.display = 'block';
+                    uploadPlaceholder.style.display = 'none';
+                    removeArtBtn.style.display = globalLock ? 'none' : 'block';
+                } else {
+                    artPreview.style.display = 'none';
+                    uploadPlaceholder.style.display = 'block';
+                    removeArtBtn.style.display = 'none';
+                }
             }
 
             const titleInput = document.getElementById('metaTitle');
@@ -729,17 +1492,96 @@
         }
         
         function resetUI() {
+            if (isElectron && globalFinalAudioPath) {
+                try { fs.unlinkSync(globalFinalAudioPath); } catch(e){}
+                try { fs.unlinkSync(globalFinalAudioPath.replace('.mp3', '_trimmed.mp3')); } catch(e){}
+            }
+            if (finalMp3Url) {
+                URL.revokeObjectURL(finalMp3Url);
+                finalMp3Url = '';
+            }
+
+            isProcessing = false;
+            currentDlProcess = null;
+            dismissToastById(SLOW_CONN_TOAST_ID);
+            dismissToastById('server-connect-toast');
             document.getElementById('statusArea').style.display = 'none';
             document.getElementById('urlInput').value = '';
             document.getElementById('triggerDownloadBtn').style.display = 'none';
-            
+
+            fetchedVideoInfo = null;
+            fetchedYtTitle = '';
+            fetchedYtThumbnail = '';
+            fetchedYtThumbnailDataUrl = null;
+
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressTrack').style.display = 'block';
+            document.getElementById('downloadProgressPct').innerText = '0%';
+            document.getElementById('encodingProgressFill').style.width = '0%';
+            document.getElementById('encodingProgressPct').innerText = '0%';
+            document.getElementById('encodingProgressTrack').style.display = 'none';
+            document.getElementById('encodingProgressLabel').style.display = 'none';
+            currentDownloadPct = 0;
+            currentEncodingPct = 0;
+
             const cBtn = document.getElementById('convertBtn');
+            cBtn.style.display = 'block';
             cBtn.innerText = 'Convert Now';
             cBtn.disabled = false;
             cBtn.onclick = startConversion;
-            
-            lastKnownStatus = '';
+            document.getElementById('containerBackBtn').classList.remove('show');
             updateFormState();
+        }
+
+        let currentDownloadPct = 0;
+        let currentEncodingPct = 0;
+
+        function animateProgressBar(fillId, pctId, fromPct, toPct, duration) {
+            const fillEl = document.getElementById(fillId);
+            const pctEl = document.getElementById(pctId);
+            if (!fillEl || !pctEl) return;
+            const start = performance.now();
+            const delta = toPct - fromPct;
+            if (Math.abs(delta) < 0.5) {
+                fillEl.style.width = `${toPct}%`;
+                pctEl.innerText = `${Math.round(toPct)}%`;
+                return;
+            }
+            function step(now) {
+                const t = Math.min(1, (now - start) / duration);
+                const eased = 1 - Math.pow(1 - t, 3);
+                const current = fromPct + delta * eased;
+                fillEl.style.width = `${current.toFixed(1)}%`;
+                pctEl.innerText = `${Math.round(current)}%`;
+                if (t < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function updateEncodingProgress(pct, animated = true, duration = 450) {
+            const clamped = Math.max(0, Math.min(100, pct));
+            if (animated) {
+                animateProgressBar('encodingProgressFill', 'encodingProgressPct', currentEncodingPct, clamped, duration);
+            } else {
+                document.getElementById('encodingProgressFill').style.width = `${clamped}%`;
+                document.getElementById('encodingProgressPct').innerText = `${clamped}%`;
+            }
+            currentEncodingPct = clamped;
+        }
+
+        function updateDownloadProgress(pct, animated = false, duration = 500) {
+            const clamped = Math.max(0, Math.min(100, pct));
+            if (animated) {
+                animateProgressBar('progressFill', 'downloadProgressPct', currentDownloadPct, clamped, duration);
+            } else {
+                document.getElementById('progressFill').style.width = `${clamped}%`;
+                document.getElementById('downloadProgressPct').innerText = `${Math.round(clamped)}%`;
+            }
+            currentDownloadPct = clamped;
+        }
+
+        function setEncodingProgress(pct, label) {
+            updateEncodingProgress(pct, true, 400);
         }
 
         function toggleMetadata() {
@@ -775,19 +1617,16 @@
                 if (currentImageDataUrl) {
                     currentImageDataUrl = null;
                     document.getElementById('artPreview').src = '';
-                    document.getElementById('artPreview').style.display = 'none';
-                    document.getElementById('uploadPlaceholder').style.display = 'block';
-                    document.getElementById('removeArtBtn').style.display = 'none';
                     document.getElementById('artInput').value = '';
                 }
 
                 btn.innerText = 'Return Attach File Info';
                 isMetaCleared = true;
             } else {
-                artistInput.value = tempSavedMeta.artist;
-                albumInput.value = tempSavedMeta.album;
-                yearInput.value = tempSavedMeta.year;
-                genreInput.value = tempSavedMeta.genre;
+                artistInput.value = sanitizeMetaText(tempSavedMeta.artist, 50);
+                albumInput.value = sanitizeMetaText(tempSavedMeta.album, 50);
+                yearInput.value = sanitizeYearValue(tempSavedMeta.year);
+                genreInput.value = sanitizeMetaText(tempSavedMeta.genre, 50);
 
                 const savedRadio = document.querySelector(`input[name="titleMode"][value="${tempSavedMeta.titleMode}"]`);
                 if (savedRadio) {
@@ -801,9 +1640,6 @@
                 if (tempSavedMeta.imageDataUrl) {
                     currentImageDataUrl = tempSavedMeta.imageDataUrl;
                     document.getElementById('artPreview').src = currentImageDataUrl;
-                    document.getElementById('artPreview').style.display = 'block';
-                    document.getElementById('uploadPlaceholder').style.display = 'none';
-                    document.getElementById('removeArtBtn').style.display = 'block';
                 }
 
                 btn.innerText = 'Clear Attach File Info';
@@ -817,14 +1653,134 @@
         function toggleTitleMode() {
             const mode = document.querySelector('input[name="titleMode"]:checked').value;
             const titleInput = document.getElementById('metaTitle');
-            
-            if (mode === 'auto') {
-                titleInput.value = fetchedYtTitle || '';
-            } else if (mode === 'empty') {
-                titleInput.value = '';
+            if (mode === 'auto') titleInput.value = fetchedYtTitle || '';
+            else if (mode === 'empty') titleInput.value = '';
+            updateFormState();
+            saveInputs();
+        }
+
+        function renderYtThumbPlaceholder(state) {
+            const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+            if (!uploadPlaceholder) return;
+            if (state === 'loading') {
+                uploadPlaceholder.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; margin-bottom: 10px; opacity: 0.8; color: var(--accent-main);"></i><br>Fetching YT Thumbnail...';
+            } else if (state === 'attached') {
+                uploadPlaceholder.innerHTML = '<i class="fab fa-youtube" style="font-size: 32px; margin-bottom: 10px; opacity: 0.6;"></i><br>YT Thumbnail attached';
+            } else if (state === 'failed') {
+                uploadPlaceholder.innerHTML = '<i class="fas fa-triangle-exclamation" style="font-size: 32px; margin-bottom: 10px; opacity: 0.6; color: var(--accent-danger);"></i><br>Thumbnail fetch failed<br><small>Will retry during tag injection</small>';
+            } else {
+                uploadPlaceholder.innerHTML = '<i class="fab fa-youtube" style="font-size: 32px; margin-bottom: 10px; opacity: 0.6;"></i><br>No Album Art Yet<br><small>Waiting for URL...</small>';
+            }
+        }
+
+        function toggleArtSourceMode() {
+            const mode = document.querySelector('input[name="artSourceMode"]:checked').value;
+            if (mode === 'ytThumbnail') {
+                renderYtThumbPlaceholder(fetchedYtThumbnailDataUrl ? 'attached' : (window.ytThumbFetchInFlight ? 'loading' : 'idle'));
+            } else {
+                document.getElementById('uploadPlaceholder').innerHTML = '<i class="fas fa-image" style="font-size: 32px; margin-bottom: 10px; opacity: 0.6;"></i><br>Click to Upload Image<br><small>(Auto-crops to 1:1)</small>';
             }
             updateFormState();
             saveInputs();
+        }
+
+        function toggleInputSourceMode() {
+            const switchEl = document.getElementById('inputModeSwitch');
+            const wrapper = document.getElementById('inputModeToggleWrapper');
+            const labelCustom = document.getElementById('modeLabelCustom');
+            const labelYt = document.getElementById('modeLabelYt');
+            const titleInput = document.getElementById('metaTitle');
+            const artistInput = document.getElementById('metaArtist');
+            const albumInput = document.getElementById('metaAlbum');
+            const yearInput = document.getElementById('metaYear');
+            const genreInput = document.getElementById('metaGenre');
+            const titleControls = document.querySelector('.title-controls');
+            const ytThumbRadio = document.querySelector('input[name="artSourceMode"][value="ytThumbnail"]');
+            const customArtRadioLabel = document.querySelector('input[name="artSourceMode"][value="custom"]').closest('label');
+
+            inputSourceMode = switchEl.checked ? 'ytCredits' : 'custom';
+            wrapper.classList.toggle('mode-yt', inputSourceMode === 'ytCredits');
+            wrapper.classList.toggle('mode-custom', inputSourceMode === 'custom');
+            labelCustom.classList.toggle('active', inputSourceMode === 'custom');
+            labelYt.classList.toggle('active', inputSourceMode === 'ytCredits');
+
+            if (inputSourceMode === 'ytCredits') {
+                tempCustomMetaForYtCredits = {
+                    titleMode: document.querySelector('input[name="titleMode"]:checked').value,
+                    title: titleInput.value, artist: artistInput.value, album: albumInput.value,
+                    year: yearInput.value, genre: genreInput.value
+                };
+
+                titleControls.style.display = 'none';
+                titleInput.placeholder = 'Waiting for URL...';
+                artistInput.placeholder = 'Waiting for URL...';
+                albumInput.placeholder = 'Waiting for URL...';
+                yearInput.placeholder = 'Waiting for URL...';
+                genreInput.placeholder = 'Waiting for URL...';
+
+                if (!fetchedVideoInfo && isElectron) {
+                    titleInput.value = ''; artistInput.value = ''; albumInput.value = '';
+                    yearInput.value = ''; genreInput.value = '';
+                } else if (fetchedVideoInfo && isElectron) {
+                    applyYtCreditsToInputs(fetchedVideoInfo);
+                } else if (!isElectron && fetchedYtTitle) {
+                     titleInput.value = fetchedYtTitle;
+                }
+
+                if (ytThumbRadio) { ytThumbRadio.checked = true; }
+                if (customArtRadioLabel) { customArtRadioLabel.style.display = 'none'; }
+                toggleArtSourceMode();
+
+                appendTerminalLog(`\n🔗 [MODE] Switched to YT Credits — read-only from link.`);
+            } else {
+                titleControls.style.display = 'flex';
+                titleInput.placeholder = 'Track Title (Waiting for URL...)';
+                artistInput.placeholder = 'Contributing Artist';
+                albumInput.placeholder = 'Album Name';
+                yearInput.placeholder = 'Year';
+                genreInput.placeholder = 'Genre';
+
+                if (tempCustomMetaForYtCredits) {
+                    artistInput.value = sanitizeMetaText(tempCustomMetaForYtCredits.artist, 50);
+                    albumInput.value = sanitizeMetaText(tempCustomMetaForYtCredits.album, 50);
+                    yearInput.value = sanitizeYearValue(tempCustomMetaForYtCredits.year);
+                    genreInput.value = sanitizeMetaText(tempCustomMetaForYtCredits.genre, 50);
+                    const savedRadio = document.querySelector(`input[name="titleMode"][value="${tempCustomMetaForYtCredits.titleMode}"]`);
+                    if (savedRadio) {
+                        savedRadio.checked = true;
+                        toggleTitleMode();
+                        if (tempCustomMetaForYtCredits.titleMode === 'manual') titleInput.value = tempCustomMetaForYtCredits.title;
+                    }
+                }
+
+                if (customArtRadioLabel) { customArtRadioLabel.style.display = ''; }
+
+                appendTerminalLog(`\n🎛️ [MODE] Switched back to Custom Inputs.`);
+            }
+
+            updateFormState();
+            saveInputs();
+        }
+
+        function applyYtCreditsToInputs(videoInfo) {
+            const titleInput = document.getElementById('metaTitle');
+            const artistInput = document.getElementById('metaArtist');
+            const albumInput = document.getElementById('metaAlbum');
+            const yearInput = document.getElementById('metaYear');
+            const genreInput = document.getElementById('metaGenre');
+
+            const ytArtist = videoInfo.artist || videoInfo.uploader || videoInfo.channel || videoInfo.author_name || 'Unknown Artist';
+            const ytAlbum = videoInfo.album || videoInfo.channel || videoInfo.uploader || videoInfo.author_name || 'YouTube';
+            const ytYear = (videoInfo.release_year || (videoInfo.upload_date ? videoInfo.upload_date.toString().slice(0, 4) : '')) || new Date().getFullYear().toString();
+            const ytGenre = (Array.isArray(videoInfo.categories) && videoInfo.categories.length ? videoInfo.categories[0] : (videoInfo.genre || 'YouTube'));
+
+            titleInput.value = fetchedYtTitle || '';
+            artistInput.value = sanitizeMetaText(ytArtist, 50);
+            albumInput.value = sanitizeMetaText(ytAlbum, 50);
+            yearInput.value = sanitizeYearValue(ytYear);
+            genreInput.value = sanitizeMetaText(ytGenre, 50);
+
+            appendTerminalLog(`🔖 [YT Credits] Auto-filled → Artist: "${artistInput.value}", Album: "${albumInput.value}", Year: "${yearInput.value}", Genre: "${genreInput.value}"`);
         }
 
         function setQuality(element, bitrate) {
@@ -833,6 +1789,176 @@
             selectedBitrate = bitrate;
             saveInputs();
         }
+
+        /* --- Audio Play Preview & Smart Trim Sync Logic --- */
+
+        function formatTimeDisplay(sec) {
+            if(isNaN(sec) || !isFinite(sec)) return "00:00";
+            let m = Math.floor(sec / 60);
+            let s = Math.floor(sec % 60);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function getSecondsFromInputs(prefix) {
+            let h = parseInt(document.getElementById(prefix+'HH').value) || 0;
+            let m = parseInt(document.getElementById(prefix+'MM').value) || 0;
+            let s = parseInt(document.getElementById(prefix+'SS').value) || 0;
+            let ms = parseInt(document.getElementById(prefix+'MS').value) || 0;
+            return (h * 3600) + (m * 60) + s + (ms / 1000);
+        }
+
+        function getTrimString(prefix) {
+            let h = (document.getElementById(prefix+'HH').value || '0').padStart(2, '0');
+            let m = (document.getElementById(prefix+'MM').value || '0').padStart(2, '0');
+            let s = (document.getElementById(prefix+'SS').value || '0').padStart(2, '0');
+            let ms = (document.getElementById(prefix+'MS').value || '0').padStart(3, '0');
+            return `${h}:${m}:${s}.${ms}`;
+        }
+
+        function togglePlay() {
+            const audio = document.getElementById('previewAudio');
+            const icon = document.querySelector('#customPlayBtn i');
+            
+            if (audio.paused) {
+                let startSec = document.getElementById('dlgTrimCheck').checked ? getSecondsFromInputs('start') : 0;
+                let endSec = document.getElementById('dlgTrimCheck').checked ? getSecondsFromInputs('end') : audio.duration;
+                
+                if(audio.currentTime >= endSec || audio.currentTime < startSec) audio.currentTime = startSec;
+                audio.play().catch(e => console.log(e));
+                icon.className = 'fas fa-pause';
+            } else {
+                audio.pause();
+                icon.className = 'fas fa-play';
+            }
+        }
+
+        function updatePlayerUI() {
+            const audio = document.getElementById('previewAudio');
+            let startSec = 0;
+            let endSec = audio.duration;
+            
+            if (document.getElementById('dlgTrimCheck').checked) {
+                startSec = getSecondsFromInputs('start');
+                endSec = getSecondsFromInputs('end');
+            }
+
+            document.getElementById('durationDisplay').innerText = formatTimeDisplay(endSec - startSec);
+            audio.dispatchEvent(new Event('timeupdate'));
+        }
+
+        function toggleTrimInputs() {
+            const isChecked = document.getElementById('dlgTrimCheck').checked;
+            const group = document.getElementById('trimInputsGroup');
+            group.style.opacity = isChecked ? '1' : '0.5';
+            group.style.pointerEvents = isChecked ? 'auto' : 'none';
+            
+            updatePlayerUI();
+            saveInputs();
+        }
+
+        function formatAndSync(el, maxLen, type) {
+            if(el.value.length > maxLen) el.value = el.value.slice(0, maxLen);
+            if(!document.getElementById('dlgTrimCheck').checked) return;
+            
+            const audio = document.getElementById('previewAudio');
+            let startSec = getSecondsFromInputs('start');
+            let endSec = getSecondsFromInputs('end');
+
+            updatePlayerUI();
+
+            if(type === 'start') {
+                audio.currentTime = startSec;
+                audio.play().catch(e=>console.log(e));
+                document.querySelector('#customPlayBtn i').className = 'fas fa-pause';
+            } else if (type === 'end') {
+                let previewStart = Math.max(startSec, endSec - 3);
+                audio.currentTime = previewStart;
+                audio.play().catch(e=>console.log(e));
+                document.querySelector('#customPlayBtn i').className = 'fas fa-pause';
+            }
+        }
+
+        function seekAudio(event) {
+            const container = document.getElementById('customProgressContainer');
+            const audio = document.getElementById('previewAudio');
+            if(!audio.duration) return;
+
+            const rect = container.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percentage = clickX / rect.width;
+
+            let startSec = 0;
+            let endSec = audio.duration;
+            if (document.getElementById('dlgTrimCheck').checked) {
+                startSec = getSecondsFromInputs('start');
+                endSec = getSecondsFromInputs('end');
+            }
+
+            let durationSpan = endSec - startSec;
+            audio.currentTime = startSec + (percentage * durationSpan);
+        }
+
+        document.getElementById('previewAudio').addEventListener('timeupdate', function() {
+            const audio = this;
+            let startSec = 0;
+            let endSec = audio.duration || 1; 
+
+            if (document.getElementById('dlgTrimCheck').checked) {
+                startSec = getSecondsFromInputs('start');
+                endSec = getSecondsFromInputs('end');
+                
+                if (audio.currentTime >= endSec && endSec > 0) {
+                    audio.pause();
+                    audio.currentTime = startSec;
+                    document.querySelector('#customPlayBtn i').className = 'fas fa-play';
+                }
+            }
+
+            let current = Math.max(startSec, Math.min(audio.currentTime, endSec));
+            let durationSpan = Math.max(0.1, endSec - startSec);
+            let progress = ((current - startSec) / durationSpan) * 100;
+            
+            document.getElementById('customProgressBar').style.width = `${progress}%`;
+            document.getElementById('currentTimeDisplay').innerText = formatTimeDisplay(current - startSec);
+        });
+
+        document.getElementById('previewAudio').addEventListener('loadedmetadata', function() {
+            const dur = this.duration;
+            if(!dur || !isFinite(dur)) return;
+            
+            let h = Math.floor(dur / 3600);
+            let m = Math.floor((dur % 3600) / 60);
+            let s = Math.floor(dur % 60);
+            let ms = Math.floor((dur % 1) * 1000);
+
+            ['startHH', 'endHH'].forEach(id => {
+                const el = document.getElementById(id);
+                el.disabled = (h === 0);
+                el.parentElement.classList.toggle('disabled', h === 0);
+            });
+
+            ['startMM', 'endMM'].forEach(id => {
+                const el = document.getElementById(id);
+                const disabledState = (h === 0 && m === 0);
+                el.disabled = disabledState;
+                if(disabledState) el.parentElement.classList.add('disabled'); 
+            });
+
+            document.getElementById('startHH').value = "00";
+            document.getElementById('startMM').value = "00";
+            document.getElementById('startSS').value = "00";
+            document.getElementById('startMS').value = "000";
+
+            document.getElementById('endHH').value = h.toString().padStart(2, '0');
+            document.getElementById('endMM').value = m.toString().padStart(2, '0');
+            document.getElementById('endSS').value = s.toString().padStart(2, '0');
+            document.getElementById('endMS').value = ms.toString().padStart(3, '0');
+
+            updatePlayerUI();
+        });
+
+
+        /* --- Standard Cropper & Dialogs --- */
 
         function openCropModal(event) {
             const file = event.target.files[0];
@@ -862,6 +1988,7 @@
                 document.getElementById('artPreview').src = currentImageDataUrl;
                 document.getElementById('artPreview').style.display = 'block';
                 document.getElementById('uploadPlaceholder').style.display = 'none';
+                document.getElementById('removeArtBtn').style.display = 'block';
                 
                 updateFormState();
                 cancelCrop(); 
@@ -876,7 +2003,7 @@
                 dialog.close();
                 dialog.classList.remove('closing');
                 if (cropper) { cropper.destroy(); cropper = null; }
-            }, 300);
+            }, 350);
         }
 
         function removeArt(e) {
@@ -899,7 +2026,19 @@
         function closeInfoDialog() {
             const dialog = document.getElementById('infoDialog');
             dialog.classList.add('closing');
-            setTimeout(() => { dialog.close(); dialog.classList.remove('closing'); }, 300);
+            setTimeout(() => { dialog.close(); dialog.classList.remove('closing'); }, 350);
+        }
+
+        function openWebNoticeDialog() {
+            const dialog = document.getElementById('webNoticeDialog');
+            dialog.classList.remove('closing');
+            dialog.showModal();
+        }
+
+        function closeWebNoticeDialog() {
+            const dialog = document.getElementById('webNoticeDialog');
+            dialog.classList.add('closing');
+            setTimeout(() => { dialog.close(); dialog.classList.remove('closing'); }, 350);
         }
 
         function openTerminalDialog(btnElement) {
@@ -922,7 +2061,7 @@
         function closeTerminalDialog() {
             const dialog = document.getElementById('terminalDialog');
             dialog.classList.add('closing');
-            setTimeout(() => { dialog.close(); dialog.classList.remove('closing'); }, 300);
+            setTimeout(() => { dialog.close(); dialog.classList.remove('closing'); }, 350);
         }
 
         const dlDialog = document.getElementById('downloadDialog');
@@ -934,14 +2073,29 @@
             document.getElementById('dlgAlbum').innerText = document.getElementById('metaAlbum').value || '-';
             document.getElementById('dlgYear').innerText = document.getElementById('metaYear').value || '-';
             document.getElementById('dlgGenre').innerText = document.getElementById('metaGenre').value || '-';
-            document.getElementById('dlgArt').src = currentImageDataUrl || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='; 
+            const dlgArtFrame = document.getElementById('dlgArtFrame');
+            const dlgArtImg = document.getElementById('dlgArt');
+            const artModeNow = document.querySelector('input[name="artSourceMode"]:checked').value;
+            const artToShow = lastEmbeddedArtDataUrl || (artModeNow === 'ytThumbnail' ? fetchedYtThumbnailDataUrl : null);
+            if (artToShow) {
+                dlgArtImg.src = artToShow;
+                dlgArtFrame.classList.remove('art-empty');
+            } else {
+                dlgArtImg.src = '';
+                dlgArtFrame.classList.add('art-empty');
+            }
+            
+            if (finalMp3Url) document.getElementById('previewAudio').src = finalMp3Url;
+            
             dlDialog.classList.remove('closing');
             dlDialog.showModal();
         }
 
         function closeDownloadDialog() {
+            document.getElementById('previewAudio').pause();
+            document.querySelector('#customPlayBtn i').className = 'fas fa-play';
             dlDialog.classList.add('closing');
-            setTimeout(() => { dlDialog.close(); dlDialog.classList.remove('closing'); }, 300); 
+            setTimeout(() => { dlDialog.close(); dlDialog.classList.remove('closing'); }, 350); 
         }
 
         function generateGUID() {
@@ -951,211 +2105,697 @@
             });
         }
 
+        /* --- Engine Extractor --- */
+
+        async function downloadAudioWithFallback(urlInput, baseDlArgs) {
+            let lastErr = null;
+
+            for (let i = 0; i < YTDLP_CLIENT_FALLBACKS.length; i++) {
+                const client = YTDLP_CLIENT_FALLBACKS[i];
+
+                if (fs.existsSync(baseDlArgs.output)) {
+                    try { fs.unlinkSync(baseDlArgs.output); } catch (e) {}
+                }
+
+                const dlArgs = {
+                    ...baseDlArgs,
+                    noWarnings: true,
+                    extractorArgs: `youtube:player_client=${client}`,
+                    retries: 1,
+                    fragmentRetries: 1,
+                    socketTimeout: 10
+                };
+
+                appendTerminalLog(`   ↳ Attempt ${i + 1}/${YTDLP_CLIENT_FALLBACKS.length}: player_client=${client}`);
+
+                let stderrBuffer = '';
+                let extractingStarted = false;
+
+                const beginExtractHeartbeat = () => {
+                    if (extractingStarted) return;
+                    extractingStarted = true;
+                    document.getElementById('downloadProgressLabel').querySelector('span').innerText = '🎧 Extracting Audio... Please Wait';
+                    showToast('Extracting and encoding mp3', 'info', 0, 'progress-toast-live');
+                    let simulated = currentDownloadPct || 75;
+                    window.extractionInterval = setInterval(() => {
+                        simulated = Math.min(simulated + 1, 98);
+                        updateDownloadProgress(simulated, true, 380);
+                    }, 400);
+                };
+
+                try {
+                    const dlProcess = youtubedl.exec(urlInput, dlArgs);
+                    currentDlProcess = dlProcess;
+
+                    dlProcess.stdout.on('data', (data) => {
+                        const text = data.toString();
+                        const match = text.match(/\[download\]\s+([\d\.]+)%/);
+                        if (match) {
+                            const pct = parseFloat(match[1]);
+                            updateDownloadProgress(pct);
+
+                            const width = 30;
+                            const completed = Math.floor((pct / 100) * width);
+                            const bar = '█'.repeat(completed) + '░'.repeat(width - completed);
+                            const progressLine = `⏳ Processing [${bar}] ${pct.toFixed(1)}%`;
+                            if (synthesizedLogs[synthesizedLogs.length - 1].includes('Processing [')) {
+                                synthesizedLogs[synthesizedLogs.length - 1] = progressLine;
+                                appendTerminalLog("");
+                            } else {
+                                appendTerminalLog(progressLine);
+                            }
+
+                            if (!extractingStarted) {
+                                showToast(`Downloading...`, 'info', 0, 'progress-toast-live');
+                            }
+
+                            if (pct >= 100) beginExtractHeartbeat();
+                        }
+                        if (/\[ExtractAudio\]/.test(text)) beginExtractHeartbeat();
+                    });
+
+                    dlProcess.stderr.on('data', (data) => {
+                        stderrBuffer += data.toString();
+                    });
+
+                    await dlProcess;
+                    currentDlProcess = null;
+                    if (window.extractionInterval) { clearInterval(window.extractionInterval); window.extractionInterval = null; }
+
+                    if (!fs.existsSync(baseDlArgs.output)) {
+                        throw new Error('yt-dlp failed to generate the final MP3 file.');
+                    }
+
+                    appendTerminalLog(`✅ Audio successfully downloaded and encoded via '${client}' client!`);
+                    return;
+
+                } catch (err) {
+                    currentDlProcess = null;
+                    if (window.extractionInterval) { clearInterval(window.extractionInterval); window.extractionInterval = null; }
+
+                    const combinedMsg = `${err.message || ''} ${stderrBuffer}`.trim();
+                    lastErr = new Error(combinedMsg || (err.message || 'Unknown download error'));
+
+                    const isLastAttempt = i === YTDLP_CLIENT_FALLBACKS.length - 1;
+                    
+                    if (!isTransientYtError(combinedMsg) || isPermanentYtError(combinedMsg) || isLastAttempt) {
+                        throw lastErr;
+                    }
+                    
+                    appendTerminalLog(`⚠️ '${client}' client blocked/failed, retrying with next client...`);
+                    document.getElementById('downloadProgressLabel').querySelector('span').innerText = 'Downloading & Extracting Audio';
+                }
+            }
+
+            throw lastErr || new Error('Unable to download from any client.');
+        }
+
         async function startConversion() {
+            if (isProcessing) return;
+
             const urlInput = document.getElementById('urlInput').value;
             if(!urlInput.includes('youtube.com/') && !urlInput.includes('youtu.be/')) {
                 showToast('Please enter a valid YouTube URL!', 'error');
                 return;
             }
 
+            if (!navigator.onLine) {
+                showToast('⚠️ No internet connection. Please check your network and try again.', 'error');
+                return;
+            }
+
+            isProcessing = true;
+            resetConnectivityWatchdog();
             const convertBtn = document.getElementById('convertBtn');
+            convertBtn.style.display = 'block';
+            convertBtn.disabled = true;
             convertBtn.innerText = 'Processing...';
+            document.getElementById('containerBackBtn').classList.remove('show');
             updateFormState();
 
             document.getElementById('statusArea').style.display = 'flex';
             document.getElementById('triggerDownloadBtn').style.display = 'none';
             document.getElementById('progressTrack').style.display = 'block';
-            document.getElementById('progressFill').style.width = '0%';
-            
-            showToast('Initiating connection to conversion server...', 'info');
+            document.getElementById('downloadProgressLabel').querySelector('span').innerText = 'Downloading & Extracting Audio';
+            updateDownloadProgress(0);
+            document.getElementById('encodingProgressTrack').style.display = 'none';
+            document.getElementById('encodingProgressLabel').style.display = 'none';
+            updateEncodingProgress(0);
 
-            const payload = {
-                url: urlInput,
-                bitrate: selectedBitrate,
-                metadata: isMetaCleared ? null : {
-                    titleMode: document.querySelector('input[name="titleMode"]:checked').value,
-                    title: document.getElementById('metaTitle').value,
-                    artist: document.getElementById('metaArtist').value,
-                    album: document.getElementById('metaAlbum').value,
-                    year: document.getElementById('metaYear').value,
-                    genre: document.getElementById('metaGenre').value
-                },
-                image: isMetaCleared ? null : currentImageDataUrl 
-            };
+            showToast('Initializing engine...', 'info', 2000);
+            await new Promise(r => setTimeout(r, 2000));
+            
+            if (!isElectron) {
+                try {
+                    fetchedYtThumbnailDataUrl = null;
+                    lastEmbeddedArtDataUrl = null;
+
+                    synthesizedLogs = [
+                        `> root@web-engine:~# connect to local server.js`,
+                        `[1/3] 📡 Retrieving YouTube link metadata via Web API...`,
+                        `🔗 Target Link: ${urlInput}`
+                    ];
+                    appendTerminalLog("");
+
+                    let oembedData = null;
+                    let oembedSucceeded = false;
+                    try {
+                        const oembedProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://noembed.com/embed?url=${urlInput}`)}`;
+                        const oembedRes = await fetch(oembedProxy);
+                        const data = await oembedRes.json();
+                        if (data && data.title && !data.error) { oembedData = data; oembedSucceeded = true; }
+                    } catch (e) { /* fall through to secondary proxy below */ }
+
+                    if (!oembedSucceeded) {
+                        try {
+                            const fallbackRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://www.youtube.com/oembed?url=${urlInput}&format=json`)}`);
+                            const data = await fallbackRes.json();
+                            if (data && data.title && !data.error) { oembedData = data; oembedSucceeded = true; }
+                        } catch (e2) { /* both proxies failed */ }
+                    }
+
+                    if (!oembedSucceeded) {
+                        oembedData = { title: '', thumbnail_url: '', author_name: '' };
+                        appendTerminalLog(`⚠️ Browser-side metadata lookup blocked/rate-limited — server.js will resolve Title/Artist itself via yt-dlp.`);
+                    }
+
+                    const videoIdMatch = urlInput.match(/(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=))([^"&?\/\s]{11})/i);
+                    const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+                    fetchedYtTitle = oembedSucceeded
+                        ? (oembedData.title || '').replace(/[<>:"\/\\|?*\x00-\x1F]/g, '').trim()
+                        : '';
+                    fetchedYtThumbnail = oembedData.thumbnail_url || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '');
+
+                    if (oembedSucceeded) {
+                        appendTerminalLog(`✅ Target Locked: "${fetchedYtTitle}"`);
+                        showToast(`yt link found`, 'success', 2500);
+                    } else {
+                        showToast(`Link accepted — resolving title on server`, 'info', 2500);
+                    }
+
+                    const currentMode = document.querySelector('input[name="titleMode"]:checked').value;
+                    if (inputSourceMode === 'ytCredits') {
+                        applyYtCreditsToInputs({ author_name: oembedData.author_name });
+                    } else if (currentMode === 'auto' && !isMetaCleared && oembedSucceeded) {
+                        document.getElementById('metaTitle').value = fetchedYtTitle;
+                    }
+
+                    let thumbnailPromise = null;
+                    if (fetchedYtThumbnail && !isMetaCleared) {
+                        appendTerminalLog(`🖼️ Fetching YT Thumbnail for Album Art in background...`);
+                        window.ytThumbFetchInFlight = true;
+                        window.ytThumbFetchFailed = false;
+                        updateFormState();
+                        thumbnailPromise = fetchThumbnailBufferWeb(fetchedYtThumbnail).then(previewBuffer => {
+                            window.ytThumbFetchInFlight = false;
+                            if (previewBuffer) {
+                                fetchedYtThumbnailDataUrl = previewBuffer;
+                                if (inputSourceMode === 'custom' && !currentImageDataUrl) {
+                                    currentImageDataUrl = previewBuffer;
+                                }
+                                appendTerminalLog(`✅ YT Thumbnail loaded into Album Art frame.`);
+                            } else {
+                                window.ytThumbFetchFailed = true;
+                                appendTerminalLog(`⚠️ Could not fetch YT Thumbnail preview — will retry during tag injection.`);
+                            }
+                            updateFormState();
+                            return previewBuffer;
+                        }).catch(() => {
+                            window.ytThumbFetchInFlight = false;
+                            window.ytThumbFetchFailed = true;
+                            updateFormState();
+                            return null;
+                        });
+                    }
+
+                    updateDownloadProgress(20, true, 500);
+                    appendTerminalLog(`\n[2/3] ⬇️ Sending conversion payload to server.js...`);
+
+                    let metaPayload = null;
+                    if (!isMetaCleared) {
+                        metaPayload = {
+                            title: document.getElementById('metaTitle').value.trim() || undefined,
+                            artist: document.getElementById('metaArtist').value.trim() || undefined,
+                            album: document.getElementById('metaAlbum').value.trim() || undefined,
+                            year: document.getElementById('metaYear').value.trim() || undefined,
+                            genre: document.getElementById('metaGenre').value.trim() || undefined
+                        };
+                    }
+
+                    let artPayload = null;
+                    if (!isMetaCleared) {
+                        const artMode = document.querySelector('input[name="artSourceMode"]:checked').value;
+                        if (artMode === 'ytThumbnail') {
+                            artPayload = thumbnailPromise ? await thumbnailPromise : fetchedYtThumbnailDataUrl;
+                        } else {
+                            artPayload = currentImageDataUrl;
+                        }
+                    }
+
+                    const convertRes = await postConvertWithRetry({
+                        url: urlInput,
+                        bitrate: selectedBitrate,
+                        metadata: metaPayload,
+                        image: artPayload
+                    });
+
+                    if (!convertRes.ok) throw new Error("Server rejected request. Ensure server.js is running.");
+                    const { task_id } = await convertRes.json();
+                    
+                    appendTerminalLog(`✅ Server accepted task. Task ID: ${task_id}`);
+
+                    let lastServerMessage = null;
+                    let hasShownExtractingToast = false;
+                    let consecutivePollFailures = 0;
+
+                    window.serverPollInterval = setInterval(async () => {
+                        try {
+                            const statusRes = await fetch(`http://127.0.0.1:5000/status/${task_id}`);
+                            const task = await statusRes.json();
+                            consecutivePollFailures = 0;
+                            dismissToastById('server-connect-toast');
+
+                            if (task.status === 'error') {
+                                clearInterval(window.serverPollInterval);
+                                handleError(task.error || "Server processing failed.");
+                                return;
+                            }
+
+                            if (task.message && task.message !== lastServerMessage) {
+                                lastServerMessage = task.message;
+                                appendTerminalLog(`⚙️ ${task.message}`);
+                            }
+                            
+                            let pct = task.progress || 0;
+                            
+                            if (pct < 80) {
+                                const displayPct = Math.max(0, Math.min(100, ((pct - 10) / 70) * 100));
+                                updateDownloadProgress(displayPct);
+                                let width = 30;
+                                let completed = Math.floor((displayPct / 100) * width);
+                                let bar = '█'.repeat(completed) + '░'.repeat(width - completed);
+                                let progressLine = `⏳ Server Processing [${bar}] ${displayPct.toFixed(1)}%`;
+                                
+                                if (synthesizedLogs[synthesizedLogs.length - 1].includes('Server Processing [')) {
+                                    synthesizedLogs[synthesizedLogs.length - 1] = progressLine;
+                                    appendTerminalLog("");
+                                } else {
+                                    appendTerminalLog(progressLine);
+                                }
+                                showToast(`Downloading`, 'info', 0, 'progress-toast-live');
+                                
+                            } else if (pct >= 80 && pct < 100) {
+                                updateDownloadProgress(100);
+                                document.getElementById('downloadProgressLabel').querySelector('span').innerText = 'Download Complete';
+                                
+                                if (!hasShownExtractingToast) {
+                                    showToast(`Extracting and encoding mp3`, 'info', 0, 'progress-toast-live');
+                                    hasShownExtractingToast = true;
+                                }
+                                
+                                document.getElementById('encodingProgressLabel').style.display = 'flex';
+                                document.getElementById('encodingProgressTrack').style.display = 'block';
+                                
+                                const encPct = Math.max(0, Math.min(100, ((pct - 80) / 20) * 100));
+                                setEncodingProgress(encPct, 'Packaging MP3 on Server');
+                                
+                            } else if (task.status === 'completed') {
+                                clearInterval(window.serverPollInterval);
+                                updateDownloadProgress(100);
+                                document.getElementById('downloadProgressLabel').querySelector('span').innerText = 'Download Complete';
+                                document.getElementById('encodingProgressLabel').style.display = 'flex';
+                                document.getElementById('encodingProgressTrack').style.display = 'block';
+                                updateEncodingProgress(100);
+                                const encLiveToast = document.getElementById('encoding-toast-live');
+                                if (encLiveToast) encLiveToast.remove();
+                                const progLiveToast = document.getElementById('progress-toast-live');
+                                if (progLiveToast) progLiveToast.remove();
+                                
+                                appendTerminalLog(`\n[3/3] 📦 Server conversion complete! Downloading final MP3 to browser memory...`);
+                                
+                                const fileRes = await fetch(`http://127.0.0.1:5000/download/${task_id}`);
+                                const blob = await fileRes.blob();
+                                
+                                if (finalMp3Url) URL.revokeObjectURL(finalMp3Url);
+                                finalMp3Url = URL.createObjectURL(blob);
+                                finalFilename = task.filename || "Downloaded_Track.mp3";
+                                lastEmbeddedArtDataUrl = artPayload; 
+                                
+                                appendTerminalLog(`✅ MP3 downloaded to browser memory.`);
+                                const sizeMb = (blob.size / (1024 * 1024)).toFixed(2);
+                                
+                                appendTerminalLog(generateAsciiTable(finalFilename, sizeMb, selectedBitrate, task.title || metaPayload?.title || fetchedYtTitle || '-', metaPayload?.artist || '-', metaPayload?.album || '-'));
+                                showToast('Complete', 'success', 5000);
+                                
+                                document.getElementById('triggerDownloadBtn').style.display = 'block';
+                                isProcessing = false;
+                                convertBtn.style.display = 'none';
+                                document.getElementById('containerBackBtn').classList.add('show');
+                            }
+                        } catch(e) {
+                            consecutivePollFailures++;
+                            if (consecutivePollFailures === 1) {
+                                showToast('⚠️ Lost contact with server.js — reconnecting...', 'warning', 0, 'server-connect-toast');
+                            }
+                            if (consecutivePollFailures >= 8) {
+                                clearInterval(window.serverPollInterval);
+                                handleError("Lost connection to local server.js. Make sure it is still running and try again.");
+                            }
+                        }
+                    }, 800);
+
+                } catch (err) {
+                    handleError(err.message || String(err));
+                }
+                return;
+            }
+
+            const tempDir = path.join(os.tmpdir(), 'yt2mp3_local_temp');
+            try {
+                if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+            } catch (dirErr) {
+                handleError(`Could not prepare temp working directory: ${dirErr.message}`);
+                return;
+            }
+
+            const taskId = Date.now().toString();
+            globalFinalAudioPath = path.join(tempDir, `${taskId}_final.mp3`);
 
             try {
-                let startResponse;
-                try {
-                    // Target the initial conversion route on the backend engine
-                    startResponse = await fetch(`${BACKEND_URL}/convert`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                } catch (netErr) {
-                    // Catch the raw network exception when the local port is closed
-                    throw new Error('Backend engine offline. server.js is not run.');
-                }
-
-                if (!startResponse.ok) throw new Error('Server denied request.');
-                const { task_id } = await startResponse.json();
-                
-                currentTaskId = task_id;
-                
                 synthesizedLogs = [
-                    `> root@nextgen-converter:~# init conversion_engine`,
-                    `[1/3] 📡 Server Connection Established... Task ID: ${task_id}`,
-                    `🔗 Target Link: ${urlInput}`
+                    `> root@advanced-converter:~# init native_engine`,
+                    `[1/4] 📡 Resolving YouTube link & auto-filling track data... Task ID: ${taskId}`,
+                    `🔗 Target Link: ${urlInput}`,
+                    `⚙️ Input Source Mode: ${inputSourceMode === 'ytCredits' ? 'YT Credits (read-only, fully sourced from link)' : 'Custom Inputs (user-editable)'}`
                 ];
                 appendTerminalLog("");
 
-                let synthStep1 = false, synthStep2 = false, synthStep3 = false;
+                const videoInfo = await fetchVideoInfoWithFallback(urlInput);
+                fetchedVideoInfo = videoInfo;
+                fetchedYtTitle = videoInfo.title.replace(/[<>:"\/\\|?*\x00-\x1F]/g, '').trim();
+                fetchedYtThumbnail = (videoInfo.thumbnail) ||
+                    (Array.isArray(videoInfo.thumbnails) && videoInfo.thumbnails.length
+                        ? videoInfo.thumbnails[videoInfo.thumbnails.length - 1].url : '');
 
-                pollInterval = setInterval(async () => {
-                    try {
-                        let statusResponse;
-                        try {
-                            statusResponse = await fetch(`${BACKEND_URL}/status/${task_id}`);
-                        } catch (pollNetErr) {
-                            throw new Error('Connection lost. server.js is not run.');
-                        }
-                        
-                        const statusData = await statusResponse.json();
+                appendTerminalLog(`✅ Target Locked: "${fetchedYtTitle}"`);
+                showToast(`yt link found`, 'success', 2500);
 
-                        if(statusData.progress >= 10 && !synthStep1) {
-                            appendTerminalLog(`✅ Target Locked. Retrieving YouTube audio data...`);
-                            synthStep1 = true;
-                        }
+                const currentMode = document.querySelector('input[name="titleMode"]:checked').value;
+                if (inputSourceMode === 'ytCredits') {
+                    applyYtCreditsToInputs(videoInfo);
+                } else if (currentMode === 'auto' && !isMetaCleared) {
+                    document.getElementById('metaTitle').value = fetchedYtTitle;
+                }
 
-                        if(statusData.progress > 10 && !synthStep2) {
-                            appendTerminalLog(`\n[2/3] ⬇️ Downloading and 🎵 Encoding to ${selectedBitrate}kbps MP3...`);
-                            appendTerminalLog(`⏳ Processing [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0.0%`);
-                            synthStep2 = true;
+                let thumbnailBufferPromise = null;
+                function getThumbnailBufferOnce() {
+                    if (!fetchedYtThumbnail) return Promise.resolve(null);
+                    if (!thumbnailBufferPromise) thumbnailBufferPromise = fetchThumbnailBuffer(fetchedYtThumbnail);
+                    return thumbnailBufferPromise;
+                }
+
+                const artModeAtFetch = document.querySelector('input[name="artSourceMode"]:checked').value;
+                if (fetchedYtThumbnail && !isMetaCleared) {
+                    appendTerminalLog(`🖼️ Fetching YT Thumbnail for Album Art in background...`);
+                    window.ytThumbFetchInFlight = true;
+                    window.ytThumbFetchFailed = false;
+                    updateFormState();
+                    getThumbnailBufferOnce().then(result => {
+                        window.ytThumbFetchInFlight = false;
+                        if (!result || !result.buffer || !result.buffer.length) {
+                            window.ytThumbFetchFailed = true;
+                            appendTerminalLog(`⚠️ Could not fetch YT Thumbnail preview — will retry during tag injection.`);
+                            updateFormState();
+                            return;
                         }
-                        
-                        if(synthStep2 && statusData.progress <= 80 && statusData.progress > 10) {
-                            let width = 30;
-                            let truePct = Math.max(0, Math.min(100, ((statusData.progress - 10) / 70) * 100));
-                            let completed = Math.floor((truePct / 100) * width);
-                            let bar = '█'.repeat(completed) + '░'.repeat(width - completed);
-                            let line = `⏳ Processing [${bar}] ${truePct.toFixed(1)}%`;
-                            if(synthesizedLogs[synthesizedLogs.length-1].includes('Processing [')) {
-                                synthesizedLogs[synthesizedLogs.length-1] = line;
-                                appendTerminalLog("");
+                        const dataUrl = `data:${result.mime};base64,${result.buffer.toString('base64')}`;
+                        if (!currentImageDataUrl && inputSourceMode === 'custom') {
+                            currentImageDataUrl = dataUrl;
+                        }
+                        if (artModeAtFetch === 'ytThumbnail') {
+                            fetchedYtThumbnailDataUrl = dataUrl;
+                        }
+                        updateFormState();
+                        appendTerminalLog(`✅ YT Thumbnail loaded into Album Art frame.`);
+                    }).catch(() => {
+                        window.ytThumbFetchInFlight = false;
+                        window.ytThumbFetchFailed = true;
+                        updateFormState();
+                    });
+                }
+
+                const dlArgs = {
+                    extractAudio: true,
+                    audioFormat: 'mp3',
+                    audioQuality: `${selectedBitrate}K`,
+                    format: 'bestaudio/best',
+                    concurrentFragments: 4,
+                    httpChunkSize: '10M',
+                    output: globalFinalAudioPath
+                };
+
+                appendTerminalLog(`\n[2/4] ⬇️ Downloading & encoding source stream with finalized metadata...`);
+                await downloadAudioWithFallback(urlInput, dlArgs);
+
+                if (synthesizedLogs[synthesizedLogs.length - 1].includes('Processing [')) {
+                    synthesizedLogs[synthesizedLogs.length - 1] = `⏳ Processing [██████████████████████████████] 100.0%`;
+                    appendTerminalLog("");
+                }
+
+                const dlLiveToast = document.getElementById('progress-toast-live');
+                if (dlLiveToast) dlLiveToast.remove();
+                if (window.extractionInterval) { clearInterval(window.extractionInterval); window.extractionInterval = null; }
+                updateDownloadProgress(100, true, 500);
+                document.getElementById('downloadProgressLabel').querySelector('span').innerText = 'Download Complete';
+                appendTerminalLog(`✅ Audio stream downloaded successfully!`);
+
+                document.getElementById('encodingProgressLabel').style.display = 'flex';
+                document.getElementById('encodingProgressTrack').style.display = 'block';
+                setEncodingProgress(8, 'Preparing MP3 encode');
+
+                appendTerminalLog(`\n[3/4] 🎛️ Encoding to ${selectedBitrate}kbps MP3 & preparing ID3 tag payload...`);
+                
+                let tags = {};
+                lastEmbeddedArtDataUrl = null;
+                if (!isMetaCleared) {
+                    tags.title = sanitizeMetaText(document.getElementById('metaTitle').value || fetchedYtTitle || 'Unknown Title', 200);
+                    tags.artist = sanitizeMetaText(
+                        document.getElementById('metaArtist').value ||
+                        (fetchedVideoInfo && (fetchedVideoInfo.artist || fetchedVideoInfo.uploader || fetchedVideoInfo.channel)) ||
+                        'Unknown Artist', 50);
+                    tags.album = sanitizeMetaText(document.getElementById('metaAlbum').value || 'Unknown Album', 50);
+                    tags.year = sanitizeYearValue(document.getElementById('metaYear').value) || new Date().getFullYear().toString();
+                    tags.genre = sanitizeMetaText(document.getElementById('metaGenre').value || 'Unknown Genre', 50);
+                    setEncodingProgress(35, 'Writing tag payload');
+
+                    let imageBuffer = null;
+                    const artMode = document.querySelector('input[name="artSourceMode"]:checked').value;
+                    if (artMode === 'ytThumbnail') {
+                        if (fetchedYtThumbnailDataUrl) {
+                            const base64Data = fetchedYtThumbnailDataUrl.replace(/^data:image\/\w+;base64,/, "");
+                            imageBuffer = Buffer.from(base64Data, 'base64');
+                            lastEmbeddedArtDataUrl = fetchedYtThumbnailDataUrl;
+                            appendTerminalLog(`🖼️ YouTube thumbnail (pre-fetched preview) attached as Album Art.`);
+                        } else {
+                            appendTerminalLog(`🖼️ YT Thumbnail mode — waiting for background fetch to finish...`);
+                            const result = await getThumbnailBufferOnce();
+                            if (result && result.buffer && result.buffer.length) {
+                                imageBuffer = result.buffer;
+                                lastEmbeddedArtDataUrl = `data:${result.mime};base64,${imageBuffer.toString('base64')}`;
+                                appendTerminalLog(`🖼️ YouTube thumbnail attached as Album Art.`);
                             } else {
-                                appendTerminalLog(line);
+                                appendTerminalLog(`⚠️ Could not fetch YouTube thumbnail — file will have no Album Art.`);
                             }
                         }
-
-                        if(statusData.progress >= 80 && !synthStep3) {
-                            if(synthesizedLogs[synthesizedLogs.length-1].includes('Processing [')) {
-                                synthesizedLogs[synthesizedLogs.length-1] = `⏳ Processing [██████████████████████████████] 100.0%`;
-                            }
-                            appendTerminalLog(`✅ Audio successfully downloaded and encoded!`);
-                            appendTerminalLog(`\n[3/3] 🏷️ Injecting ID3 tags and Album Art...`);
-                            synthStep3 = true;
-                        }
-
-                        if (statusData.status !== lastKnownStatus) {
-                            if (statusData.status === 'authenticating') {
-                                appendTerminalLog(`[WARN] YouTube Auth Required! Code: ${statusData.auth_code}`);
-                                showToast(`YouTube Auth Required!<br><b style="font-size:1.2rem;letter-spacing:2px;color:#00d2ff;">${statusData.auth_code || 'Check Server'}</b><br><a href="https://www.google.com/device" target="_blank" style="color:#fff;">Click here to authorize</a>`, 'warning', 15000);
-                            } else if (statusData.status === 'completed') {
-                                const progToast = document.getElementById('progress-toast-live');
-                                if(progToast) progToast.remove();
-                                showToast('Conversion complete! File is ready.', 'success');
-                            }
-                            lastKnownStatus = statusData.status;
-                        }
-
-                        if (statusData.status === 'downloading' || statusData.status === 'converting') {
-                            const pct = statusData.progress || 0;
-                            document.getElementById('progressFill').style.width = `${pct}%`;
-                            
-                            const phaseName = statusData.status === 'downloading' ? 'Downloading Stream' : 'Encoding Audio';
-                            showToast(`${phaseName}... <strong style="color:#00d2ff;">${pct}%</strong>`, 'info', 0, 'progress-toast-live');
-                        }
-
-                        if (statusData.status === 'completed') {
-                            clearInterval(pollInterval);
-                            document.getElementById('progressFill').style.width = '100%';
-                            document.getElementById('progressTrack').style.display = 'none';
-                            
-                            fetchedYtTitle = statusData.title || '';
-                            const currentMode = document.querySelector('input[name="titleMode"]:checked').value;
-                            if (currentMode === 'auto' && !isMetaCleared) {
-                                document.getElementById('metaTitle').value = fetchedYtTitle;
-                                saveInputs();
-                            }
-
-                            finalFilename = statusData.filename || (fetchedYtTitle + '.mp3');
-                            finalMp3Url = `${BACKEND_URL}/download/${task_id}`;
-                            
-                            let finalTitle = document.getElementById('metaTitle').value || fetchedYtTitle;
-                            let finalArtist = document.getElementById('metaArtist').value || 'Unknown Artist';
-                            let finalAlbum = document.getElementById('metaAlbum').value || 'Unknown Album';
-                            let pseudoFileSize = (Math.random() * (12.50 - 4.50) + 4.50).toFixed(2);
-
-                            appendTerminalLog(`✅ Metadata injected successfully!`);
-                            
-                            appendTerminalLog(generateAsciiTable(finalFilename, pseudoFileSize, selectedBitrate, finalTitle, finalArtist, finalAlbum));
-
-                            document.getElementById('triggerDownloadBtn').style.display = 'block';
-                            convertBtn.disabled = false;
-                            convertBtn.innerText = 'Back';
-                            convertBtn.onclick = resetUI;
-
-                        } else if (statusData.status === 'error') {
-                            throw new Error(statusData.error || 'Backend failed.');
-                        }
-
-                    } catch (err) {
-                        handleError(err.message);
+                    } else if (currentImageDataUrl) {
+                        const base64Data = currentImageDataUrl.replace(/^data:image\/\w+;base64,/, "");
+                        imageBuffer = Buffer.from(base64Data, 'base64');
+                        lastEmbeddedArtDataUrl = currentImageDataUrl;
+                        appendTerminalLog(`🖼️ Custom Album Art attached.`);
                     }
-                }, 1500); 
+                    if (imageBuffer) {
+                        const mimeMatch = lastEmbeddedArtDataUrl && lastEmbeddedArtDataUrl.match(/^data:(image\/[\w.+-]+);base64,/);
+                        tags.image = {
+                            mime: mimeMatch ? mimeMatch[1] : "image/jpeg",
+                            type: { id: 3, name: "front cover" },
+                            description: "Thumbnail",
+                            imageBuffer
+                        };
+                    }
+                    setEncodingProgress(62, 'Embedding Album Art');
+                } else {
+                    appendTerminalLog(`ℹ️ Metadata cleared — skipping tag/art embedding for this export.`);
+                    setEncodingProgress(62, 'Skipping metadata (cleared)');
+                }
+
+                globalTrackTags = tags;
+
+                let writeOk = false;
+                try {
+                    writeOk = NodeID3.write(tags, globalFinalAudioPath);
+                } catch (tagErr) {
+                    writeOk = false;
+                }
+                if (!writeOk) {
+                    await new Promise(r => setTimeout(r, 300));
+                    try { writeOk = NodeID3.write(tags, globalFinalAudioPath); } catch (e) { writeOk = false; }
+                }
+                if (!isMetaCleared && !writeOk) {
+                    throw new Error('Failed to write ID3 metadata (Title/Artist/Album/Year/Genre/Art) to the MP3 file.');
+                }
+                setEncodingProgress(88, 'Verifying ID3 tags');
+                if (!isMetaCleared) {
+                    appendTerminalLog(`✅ Metadata verified — Title, Artist, Album, Year, Genre${tags.image ? ' & Album Art' : ''} confirmed written.`);
+                }
+
+                appendTerminalLog(`\n[4/4] 📦 Finalizing & packaging MP3 file...`);
+
+                const stats = fs.statSync(globalFinalAudioPath);
+                const sizeMb = (stats.size / (1024 * 1024)).toFixed(2);
+                
+                finalFilename = (tags.title || fetchedYtTitle) + '.mp3';
+                const fileBuffer = fs.readFileSync(globalFinalAudioPath);
+                const fileBlob = new Blob([fileBuffer], { type: 'audio/mp3' });
+                if (finalMp3Url) URL.revokeObjectURL(finalMp3Url);
+                finalMp3Url = URL.createObjectURL(fileBlob);
+
+                updateEncodingProgress(100, true, 400);
+                const encLiveToast = document.getElementById('encoding-toast-live');
+                if (encLiveToast) encLiveToast.remove();
+                appendTerminalLog(`✅ MP3 packaged successfully — Encoding complete!`);
+
+                const artModeFinal = document.querySelector('input[name="artSourceMode"]:checked').value;
+                if (artModeFinal === 'ytThumbnail' && lastEmbeddedArtDataUrl) {
+                    fetchedYtThumbnailDataUrl = lastEmbeddedArtDataUrl;
+                    updateFormState();
+                    appendTerminalLog(`🖼️ Final embedded Album Art re-attached to preview box.`);
+                }
+
+                appendTerminalLog(generateAsciiTable(finalFilename, sizeMb, selectedBitrate, tags.title || '-', tags.artist || '-', tags.album || '-'));
+
+                showToast('Complete', 'success', 5000);
+
+                document.getElementById('triggerDownloadBtn').style.display = 'block';
+                isProcessing = false;
+                convertBtn.style.display = 'none';
+                document.getElementById('containerBackBtn').classList.add('show');
 
             } catch (err) {
-                handleError(err.message);
+                handleError(err.message || String(err));
             }
         }
 
         function handleError(msg) {
-            if(pollInterval) clearInterval(pollInterval);
             document.getElementById('progressTrack').style.display = 'none';
+            document.getElementById('encodingProgressTrack').style.display = 'none';
+            document.getElementById('encodingProgressLabel').style.display = 'none';
             
-            appendTerminalLog(`\n❌ [FATAL ERROR]: ${msg}`);
+            let errorText = (typeof msg === 'string' && msg.trim() !== '') ? msg : (msg && msg.message ? msg.message : JSON.stringify(msg));
+            if (!errorText || errorText === '{}') errorText = "Process Failed: Missing yt-dlp binary or network rejection.";
+            
+            appendTerminalLog(`\n❌ [FATAL ERROR]: ${errorText}`);
             
             const progToast = document.getElementById('progress-toast-live');
             if(progToast) progToast.remove();
-            
-            // Displays your clean server warning text instead of standard network logs
-            showToast(`${msg}`, 'error');
-            
+            const encToast = document.getElementById('encoding-toast-live');
+            if(encToast) encToast.remove();
+            dismissToastById(SLOW_CONN_TOAST_ID);
+            dismissToastById('server-connect-toast');
+
+            let toastMsg = errorText.length > 100 ? errorText.substring(0, 100) + '...' : errorText;
+            showToast(`${toastMsg}`, 'error');
+
+            if (currentDlProcess) {
+                try { currentDlProcess.kill(); } catch (e) {}
+                currentDlProcess = null;
+            }
+            if (window.extractionInterval) {
+                clearInterval(window.extractionInterval);
+                window.extractionInterval = null;
+            }
+            if (window.serverPollInterval) {
+                clearInterval(window.serverPollInterval);
+                window.serverPollInterval = null;
+            }
+
+            if (isElectron && globalFinalAudioPath && fs.existsSync(globalFinalAudioPath)) {
+                try { fs.unlinkSync(globalFinalAudioPath); } catch (e) {}
+            }
+
+            isProcessing = false;
             const convertBtn = document.getElementById('convertBtn');
+            convertBtn.style.display = 'block';
+            convertBtn.disabled = false;
             convertBtn.innerText = 'Try Again';
             convertBtn.onclick = startConversion;
-            
+            document.getElementById('containerBackBtn').classList.remove('show');
+
             updateFormState();
         }
 
         function executeFinalDownload() {
+            const trimChecked = document.getElementById('dlgTrimCheck').checked;
+            let exportUrl = finalMp3Url;
+            let exportFilename = finalFilename;
+
+            if (trimChecked && isElectron) {
+                const tStart = getTrimString('start');
+                const tEnd = getTrimString('end');
+                
+                if (tStart && tEnd && globalFinalAudioPath) {
+                    const finalTrimmedPath = globalFinalAudioPath.replace('.mp3', '_trimmed.mp3');
+                    appendTerminalLog(`✂️ Export FFMPEG Sequence Initiated: ${tStart} to ${tEnd}`);
+                    try {
+                        execSync(`ffmpeg -y -i "${globalFinalAudioPath}" -ss ${tStart} -to ${tEnd} -c copy "${finalTrimmedPath}"`);
+
+                        if (globalTrackTags && Object.keys(globalTrackTags).length) {
+                            let retagOk = false;
+                            try { retagOk = NodeID3.write(globalTrackTags, finalTrimmedPath); } catch (e) { retagOk = false; }
+                            appendTerminalLog(retagOk
+                                ? `🏷️ Metadata reapplied to trimmed file.`
+                                : `⚠️ Warning: could not reapply metadata after trimming.`);
+                        }
+
+                        const fileBuffer = fs.readFileSync(finalTrimmedPath);
+                        const fileBlob = new Blob([fileBuffer], { type: 'audio/mp3' });
+                        
+                        exportUrl = URL.createObjectURL(fileBlob);
+                        
+                        const safeStartStr = tStart.replace(/:/g, '').split('.')[0];
+                        exportFilename = finalFilename.replace('.mp3', `_Trim_${safeStartStr}.mp3`);
+
+                        appendTerminalLog(`✅ Trim applied successfully before export!`);
+                    } catch (e) {
+                        appendTerminalLog(`⚠️ FFMPEG Export Trim Failed (check timecode format): ${e.message}`);
+                        showToast(`Failed to trim audio. Exporting untrimmed version instead.`, `warning`);
+                    }
+                }
+            }
+
             let mp3Link = document.createElement('a');
-            mp3Link.href = finalMp3Url;
-            mp3Link.download = finalFilename;
+            mp3Link.href = exportUrl;
+            mp3Link.download = exportFilename;
             mp3Link.click(); 
 
+            if (exportUrl !== finalMp3Url) {
+                setTimeout(() => URL.revokeObjectURL(exportUrl), 5000);
+            }
+
             const includeArt = document.getElementById('dlArtCheck').checked;
-            if (includeArt && currentImageDataUrl && currentImageDataUrl !== lastDownloadedImageHash && !isMetaCleared) {
+            if (includeArt && lastEmbeddedArtDataUrl && lastEmbeddedArtDataUrl !== lastDownloadedImageHash && !isMetaCleared) {
                 const guid = generateGUID();
                 let imgLink = document.createElement('a');
-                imgLink.href = currentImageDataUrl;
+                imgLink.href = lastEmbeddedArtDataUrl;
                 imgLink.download = `AlbumArt_{${guid}}_Large.jpg`;
                 imgLink.click();
-                lastDownloadedImageHash = currentImageDataUrl;
+                
+                lastDownloadedImageHash = lastEmbeddedArtDataUrl;
             }
 
             closeDownloadDialog();
-            setTimeout(() => { resetUI(); }, 600);
+            
+            showToast('Export successful! You can trim another section or click Back to start a new track.', 'success', 5500);
         }
     </script>
 </body>
